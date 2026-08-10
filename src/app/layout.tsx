@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
+import { AuthProvider } from "@/components/AuthProvider";
 import { LibraryProvider } from "@/lib/library-context";
 import "./globals.css";
 
@@ -34,7 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${syne.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <LibraryProvider>{children}</LibraryProvider>
+        <AuthProvider>
+          <LibraryProvider>{children}</LibraryProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent } from "react";
-import type { ItemDraft, ItemKind, LibraryItem } from "@/lib/types";
+import { useLibrary } from "@/lib/library-context";
+import type {
+  ChatMessage,
+  ItemDraft,
+  ItemKind,
+  LibraryItem,
+} from "@/lib/types";
 import { KIND_LABELS, KIND_ORDER } from "@/lib/types";
 
 interface ItemEditorProps {
@@ -22,10 +28,10 @@ function buildInitialState(
       title: initial.title,
       body: initial.body,
       tags: initial.tags.join(", "),
-      chatTranscript:
-        initial.messages
-          ?.map((m) => `${m.role}: ${m.content}`)
-          .join("\n\n") ?? "",
+      collectionId: initial.collectionId ?? "",
+      messages: initial.messages?.length
+        ? initial.messages
+        : [{ role: "user" as const, content: "" }],
     };
   }
   return {
@@ -33,7 +39,8 @@ function buildInitialState(
     title: "",
     body: "",
     tags: "",
-    chatTranscript: "",
+    collectionId: "",
+    messages: [{ role: "user" as const, content: "" }],
   };
 }
 
@@ -49,12 +56,14 @@ function ItemEditorForm({
   onSave: (draft: ItemDraft, id?: string) => void;
 }) {
   const titleId = useId();
+  const { collections, mode } = useLibrary();
   const seed = buildInitialState(initial, defaultKind);
   const [kind, setKind] = useState<ItemKind>(seed.kind);
   const [title, setTitle] = useState(seed.title);
   const [body, setBody] = useState(seed.body);
   const [tags, setTags] = useState(seed.tags);
-  const [chatTranscript, setChatTranscript] = useState(seed.chatTranscript);
+  const [collectionId, setCollectionId] = useState(seed.collectionId);
+  const [messages, setMessages] = useState<ChatMessage[]>(seed.messages);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,22 +74,13 @@ function ItemEditorForm({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function parseChat(raw: string) {
-    const blocks = raw
-      .split(/\n\s*\n/)
-      .map((b) => b.trim())
-      .filter(Boolean);
-    if (!blocks.length) return undefined;
-    return blocks.map((block) => {
-      const match = block.match(/^(user|assistant|system)\s*:\s*([\s\S]*)$/i);
-      if (match) {
-        return {
-          role: match[1].toLowerCase() as "user" | "assistant" | "system",
-          content: match[2].trim(),
-        };
-      }
-      return { role: "user" as const, content: block };
-    });
+  function updateMessage(
+    index: number,
+    patch: Partial<ChatMessage>,
+  ) {
+    setMessages((prev) =>
+      prev.map((msg, i) => (i === index ? { ...msg, ...patch } : msg)),
+    );
   }
 
   function handleSubmit(e: FormEvent) {
@@ -93,8 +93,19 @@ function ItemEditorForm({
       setError("Добавьте текст");
       return;
     }
-    if (kind === "chat" && !body.trim() && !chatTranscript.trim()) {
-      setError("Добавьте описание или транскрипт чата");
+
+    const cleanedMessages =
+      kind === "chat"
+        ? messages
+            .map((m) => ({
+              role: m.role,
+              content: m.content.trim(),
+            }))
+            .filter((m) => m.content)
+        : undefined;
+
+    if (kind === "chat" && !body.trim() && !cleanedMessages?.length) {
+      setError("Добавьте описание или сообщения чата");
       return;
     }
 
@@ -106,8 +117,9 @@ function ItemEditorForm({
         .split(/[,;#]+/)
         .map((t) => t.trim())
         .filter(Boolean),
-      messages: kind === "chat" ? parseChat(chatTranscript) : undefined,
+      messages: cleanedMessages,
       favorite: initial?.favorite,
+      collectionId: collectionId || null,
     };
 
     onSave(draft, initial?.id);
@@ -183,15 +195,73 @@ function ItemEditorForm({
           </label>
 
           {kind === "chat" ? (
+            <div className="chat-editor">
+              <div className="chat-editor-head">
+                <span>Сообщения</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() =>
+                    setMessages((prev) => [
+                      ...prev,
+                      { role: "assistant", content: "" },
+                    ])
+                  }
+                >
+                  + Сообщение
+                </button>
+              </div>
+              {messages.map((msg, index) => (
+                <div key={index} className="chat-editor-row">
+                  <select
+                    value={msg.role}
+                    onChange={(e) =>
+                      updateMessage(index, {
+                        role: e.target.value as ChatMessage["role"],
+                      })
+                    }
+                  >
+                    <option value="user">user</option>
+                    <option value="assistant">assistant</option>
+                    <option value="system">system</option>
+                  </select>
+                  <textarea
+                    value={msg.content}
+                    onChange={(e) =>
+                      updateMessage(index, { content: e.target.value })
+                    }
+                    rows={3}
+                    placeholder="Текст сообщения…"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() =>
+                      setMessages((prev) => prev.filter((_, i) => i !== index))
+                    }
+                    disabled={messages.length <= 1}
+                  >
+                    Удалить
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {mode === "cloud" ? (
             <label className="field">
-              <span>Транскрипт (блоки user: / assistant: / system:)</span>
-              <textarea
-                value={chatTranscript}
-                onChange={(e) => setChatTranscript(e.target.value)}
-                rows={8}
-                placeholder={"user: …\n\nassistant: …"}
-                className="mono"
-              />
+              <span>Коллекция</span>
+              <select
+                value={collectionId}
+                onChange={(e) => setCollectionId(e.target.value)}
+              >
+                <option value="">Без коллекции</option>
+                {collections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </label>
           ) : null}
 

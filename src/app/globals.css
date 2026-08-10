@@ -677,6 +677,173 @@ a {
   padding-top: 0.25rem;
 }
 
+.auth-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.mode-pill {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.mode-pill.cloud {
+  background: rgba(15, 107, 92, 0.12);
+  color: var(--accent-deep);
+  border-color: rgba(15, 107, 92, 0.2);
+}
+
+.user-email {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.sync-banner {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 107, 92, 0.2);
+  background: rgba(15, 107, 92, 0.08);
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.sync-banner a {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+.sync-banner.action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.auth-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+.auth-brand {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.auth-card h1 {
+  margin: 0.85rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+}
+
+.auth-lead {
+  margin: 0 0 1.1rem;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.auth-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.auth-switch {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.auth-switch a {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+.collection-chip {
+  display: inline-flex;
+  margin-left: 0.45rem;
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(42, 74, 64, 0.1);
+  color: var(--ink-soft);
+}
+
+.chat-editor {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.chat-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.chat-editor-row {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.chat-editor-row select,
+.field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font: inherit;
+  padding: 0.55rem 0.75rem;
+}
+
+.chat-editor-row textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  resize: vertical;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     width: min(100% - 1.25rem, 1200px);

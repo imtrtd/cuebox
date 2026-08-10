@@ -15,6 +15,8 @@ export function Toolbar({
     setQuery,
     kindFilter,
     setKindFilter,
+    collectionFilter,
+    setCollectionFilter,
     favoritesOnly,
     setFavoritesOnly,
     sort,
@@ -22,18 +24,39 @@ export function Toolbar({
     exportJson,
     filteredItems,
     items,
+    collections,
+    mode,
+    addCollection,
+    removeCollection,
   } = useLibrary();
 
-  function handleExport() {
-    const blob = new Blob([exportJson()], {
-      type: "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `cuebox-library-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function handleExport() {
+    try {
+      const json = await exportJson();
+      const blob = new Blob([json], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cuebox-library-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Экспорт не удался");
+    }
+  }
+
+  async function handleAddCollection() {
+    const name = window.prompt("Название коллекции");
+    if (!name?.trim()) return;
+    try {
+      await addCollection(name.trim());
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Не удалось создать коллекцию",
+      );
+    }
   }
 
   return (
@@ -61,7 +84,7 @@ export function Toolbar({
         </label>
 
         <div className="toolbar-actions">
-          <button type="button" className="btn btn-ghost" onClick={handleExport}>
+          <button type="button" className="btn btn-ghost" onClick={() => void handleExport()}>
             Экспорт
           </button>
           <button type="button" className="btn btn-ghost" onClick={onImportClick}>
@@ -103,6 +126,58 @@ export function Toolbar({
         </div>
 
         <div className="toolbar-side">
+          {mode === "cloud" ? (
+            <label className="sort-field">
+              <span>Коллекция</span>
+              <select
+                value={collectionFilter}
+                onChange={(e) =>
+                  setCollectionFilter(
+                    e.target.value as string | "all" | "none",
+                  )
+                }
+              >
+                <option value="all">Все</option>
+                <option value="none">Без коллекции</option>
+                {collections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {mode === "cloud" ? (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => void handleAddCollection()}
+            >
+              + Коллекция
+            </button>
+          ) : null}
+
+          {mode === "cloud" &&
+          collectionFilter !== "all" &&
+          collectionFilter !== "none" ? (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                const col = collections.find((c) => c.id === collectionFilter);
+                if (
+                  col &&
+                  window.confirm(`Удалить коллекцию «${col.name}»?`)
+                ) {
+                  void removeCollection(col.id);
+                }
+              }}
+            >
+              Удалить коллекцию
+            </button>
+          ) : null}
+
           <label className="check-line">
             <input
               type="checkbox"

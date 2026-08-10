@@ -1,27 +1,32 @@
 # Cuebox
 
-Личная библиотека для хранения **промптов**, **подсказок**, **общих задач** и **чатов с ИИ**.
-
-Данные сохраняются в `localStorage` браузера. Есть импорт/экспорт JSON и демо-набор записей.
+Личная библиотека для хранения **промптов**, **подсказок**, **общих задач** и **чатов с ИИ** с синхронизацией между устройствами.
 
 ## Возможности
 
 - Типы записей: промпт, подсказка, задача, чат
-- Поиск, фильтры по типу, избранное, сортировка
-- Создание и редактирование записей
-- Копирование текста / транскрипта в буфер обмена
-- Импорт и экспорт библиотеки в JSON
+- Локальный режим (гость) на `localStorage`
+- Облачный режим: аккаунт (email + пароль), библиотека в SQLite через Prisma
+- Импорт локальных записей в облако после входа
+- Поиск, фильтры по типу/коллекции, избранное, сортировка
+- Коллекции, плейсхолдеры `{{variable}}`, редактор сообщений чата
+- Импорт и экспорт JSON
 
 ## Стек
 
 - Next.js (App Router) + React + TypeScript
+- Auth.js (NextAuth v5) — credentials
+- Prisma + SQLite
 - Tailwind CSS v4
-- Клиентское хранилище без бэкенда (MVP)
 
-## Запуск
+## Быстрый старт
 
 ```bash
+cp .env.example .env
+# задайте AUTH_SECRET (openssl rand -base64 32) и DATABASE_URL
+
 npm install
+npx prisma migrate deploy
 npm run dev
 ```
 
@@ -32,33 +37,40 @@ npm run build
 npm start
 ```
 
-## Модель данных
+## Переменные окружения
 
-Элемент библиотеки (`LibraryItem`):
+| Переменная | Описание |
+|------------|----------|
+| `AUTH_SECRET` | Секрет Auth.js |
+| `DATABASE_URL` | Prisma URL, по умолчанию `file:./dev.db` |
+| `AUTH_URL` | Публичный URL приложения (для production) |
 
-| Поле | Описание |
-|------|----------|
-| `kind` | `prompt` \| `tip` \| `task` \| `chat` |
-| `title` | Название |
-| `body` | Текст или краткое описание |
-| `tags` | Теги |
-| `messages` | Опциональный транскрипт для чатов |
-| `favorite` | Избранное |
+## Синхронизация
 
-Ключ хранилища: `cuebox.library.v1`.
+1. Гость работает локально в браузере.
+2. Регистрация / вход переключает UI в облачный режим.
+3. Если в `localStorage` есть записи — предлагается импорт в облако.
+4. На другом устройстве тот же аккаунт видит ту же библиотеку.
+
+## API (авторизованные)
+
+- `GET/POST /api/items`
+- `PATCH/DELETE /api/items/[id]`
+- `POST /api/items/import`
+- `GET /api/items/export`
+- `GET/POST /api/collections`
+- `PATCH/DELETE /api/collections/[id]`
 
 ## Структура
 
 ```
-src/
-  app/           # страницы и стили
-  components/    # UI библиотеки
-  lib/           # типы, seed, storage, context
+prisma/          # схема и миграции
+src/app/api/     # auth + items + collections
+src/auth.ts      # Auth.js
+src/components/  # UI
+src/lib/         # prisma, storage, api client, types
 ```
 
-## Roadmap
+## Postgres позже
 
-- Синхронизация через API / БД
-- Коллекции и шаринг ссылок
-- Переменные `{{placeholder}}` с формой подстановки
-- Темы и мультиязычность интерфейса
+Смените `provider` в `prisma/schema.prisma` на `postgresql`, обновите `DATABASE_URL`, выполните миграции — API менять не нужно.

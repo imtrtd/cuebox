@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AuthStatus } from "@/components/AuthStatus";
 import { ItemDetail } from "@/components/ItemDetail";
 import { ItemEditor } from "@/components/ItemEditor";
 import { ItemList } from "@/components/ItemList";
@@ -12,22 +13,40 @@ export function AppShell() {
   const {
     items,
     ready,
+    mode,
+    localItemCount,
     addItem,
     editItem,
     removeItem,
     importJson,
     resetToSeed,
+    importLocalToCloud,
   } = useLibrary();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [defaultKind, setDefaultKind] = useState<ItemKind>("prompt");
+  const [importPromptShown, setImportPromptShown] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const askedImportRef = useRef(false);
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   );
+
+  useEffect(() => {
+    if (
+      mode !== "cloud" ||
+      !ready ||
+      askedImportRef.current ||
+      localItemCount === 0
+    ) {
+      return;
+    }
+    askedImportRef.current = true;
+    setImportPromptShown(true);
+  }, [mode, ready, localItemCount]);
 
   function openCreate(kind: ItemKind = "prompt") {
     setEditing(null);
@@ -42,37 +61,63 @@ export function AppShell() {
     setEditorOpen(true);
   }
 
-  function handleSave(draft: ItemDraft, id?: string) {
-    if (id) {
-      editItem(id, draft);
-      setSelectedId(id);
-    } else {
-      const created = addItem(draft);
-      setSelectedId(created.id);
+  async function handleSave(draft: ItemDraft, id?: string) {
+    try {
+      if (id) {
+        await editItem(id, draft);
+        setSelectedId(id);
+      } else {
+        const created = await addItem(draft);
+        setSelectedId(created.id);
+      }
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Ошибка сохранения");
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!selected) return;
     if (!window.confirm(`Удалить «${selected.title}»?`)) return;
     const id = selected.id;
-    removeItem(id);
-    setSelectedId(null);
+    try {
+      await removeItem(id);
+      setSelectedId(null);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Ошибка удаления");
+    }
   }
 
   function handleImportFile(file: File) {
     const reader = new FileReader();
     reader.onload = () => {
-      try {
-        importJson(String(reader.result ?? ""));
-        setSelectedId(null);
-      } catch (err) {
-        window.alert(
-          err instanceof Error ? err.message : "Не удалось импортировать JSON",
-        );
-      }
+      void (async () => {
+        try {
+          await importJson(String(reader.result ?? ""));
+          setSelectedId(null);
+        } catch (err) {
+          window.alert(
+            err instanceof Error
+              ? err.message
+              : "Не удалось импортировать JSON",
+          );
+        }
+      })();
     };
     reader.readAsText(file);
+  }
+
+  async function handleImportLocal() {
+    try {
+      const count = await importLocalToCloud();
+      setImportPromptShown(false);
+      window.alert(
+        count > 0
+          ? `Импортировано записей: ${count}`
+          : "Локальных записей не найдено",
+      );
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Импорт не удался");
+    }
   }
 
   return (
@@ -85,7 +130,8 @@ export function AppShell() {
           </p>
         </div>
         <div className="header-actions">
-          {ready ? (
+          <AuthStatus />
+          {ready && mode === "local" ? (
             <button
               type="button"
               className="btn btn-ghost"
@@ -105,6 +151,39 @@ export function AppShell() {
           ) : null}
         </div>
       </header>
+
+      {mode === "local" ? (
+        <p className="sync-banner">
+          Сейчас данные только в этом браузере.{" "}
+          <a href="/register">Создайте аккаунт</a>, чтобы синхронизировать
+          библиотеку между устройствами.
+        </p>
+      ) : null}
+
+      {importPromptShown ? (
+        <div className="sync-banner action">
+          <span>
+            Найдены локальные записи ({localItemCount}). Импортировать их в
+            облачную библиотеку?
+          </span>
+          <span className="banner-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void handleImportLocal()}
+            >
+              Импортировать
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setImportPromptShown(false)}
+            >
+              Позже
+            </button>
+          </span>
+        </div>
+      ) : null}
 
       <Toolbar
         onCreate={openCreate}
@@ -134,7 +213,7 @@ export function AppShell() {
           <ItemDetail
             item={selected}
             onEdit={openEdit}
-            onDelete={handleDelete}
+            onDelete={() => void handleDelete()}
           />
         </main>
       </div>
@@ -144,7 +223,7 @@ export function AppShell() {
         initial={editing}
         defaultKind={defaultKind}
         onClose={() => setEditorOpen(false)}
-        onSave={handleSave}
+        onSave={(draft, id) => void handleSave(draft, id)}
       />
     </div>
   );

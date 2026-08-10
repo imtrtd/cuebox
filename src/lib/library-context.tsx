@@ -1,14 +1,28 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { SEED_ITEMS, STORAGE_KEY } from "@/lib/seed";
+import {
+  apiCreateCollection,
+  apiCreateItem,
+  apiDeleteCollection,
+  apiDeleteItem,
+  apiExportItems,
+  apiImportItems,
+  apiListCollections,
+  apiListItems,
+  apiUpdateItem,
+} from "@/lib/api";
+import { SEED_ITEMS } from "@/lib/seed";
 import {
   createItem,
   deleteItem,
@@ -18,90 +32,55 @@ import {
   saveLibrary,
   updateItem,
 } from "@/lib/storage";
-import type { ItemDraft, ItemKind, LibraryItem } from "@/lib/types";
+import type {
+  Collection,
+  ItemDraft,
+  ItemKind,
+  LibraryItem,
+} from "@/lib/types";
 
 type SortMode = "updated" | "created" | "title";
 
 interface LibraryState {
+  mode: "local" | "cloud";
   items: LibraryItem[];
+  collections: Collection[];
   ready: boolean;
+  loading: boolean;
   query: string;
   kindFilter: ItemKind | "all";
+  collectionFilter: string | "all" | "none";
   favoritesOnly: boolean;
   sort: SortMode;
   setQuery: (value: string) => void;
   setKindFilter: (value: ItemKind | "all") => void;
+  setCollectionFilter: (value: string | "all" | "none") => void;
   setFavoritesOnly: (value: boolean) => void;
   setSort: (value: SortMode) => void;
-  addItem: (draft: ItemDraft) => LibraryItem;
+  addItem: (draft: ItemDraft) => Promise<LibraryItem>;
   editItem: (
     id: string,
     patch: Partial<ItemDraft> & { favorite?: boolean },
-  ) => void;
-  removeItem: (id: string) => void;
-  toggleFavorite: (id: string) => void;
+  ) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+  toggleFavorite: (id: string) => Promise<void>;
   resetToSeed: () => void;
-  exportJson: () => string;
-  importJson: (raw: string) => void;
+  exportJson: () => Promise<string>;
+  importJson: (raw: string) => Promise<void>;
+  refresh: () => Promise<void>;
+  importLocalToCloud: () => Promise<number>;
+  addCollection: (name: string) => Promise<Collection | null>;
+  removeCollection: (id: string) => Promise<void>;
   filteredItems: LibraryItem[];
+  localItemCount: number;
 }
 
 const LibraryContext = createContext<LibraryState | null>(null);
 
-const listeners = new Set<() => void>();
-
-function emit() {
-  for (const listener of listeners) listener();
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function getClientSnapshot(): string {
-  if (typeof window === "undefined") {
-    return JSON.stringify(SEED_ITEMS);
-  }
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_ITEMS));
-    return JSON.stringify(SEED_ITEMS);
-  }
-  return raw;
-}
-
-function getServerSnapshot(): string {
-  return JSON.stringify(SEED_ITEMS);
-}
-
-function writeItems(items: LibraryItem[]) {
-  saveLibrary(items);
-  emit();
-}
-
-function parseItems(raw: string): LibraryItem[] {
-  try {
-    const parsed = JSON.parse(raw) as LibraryItem[];
-    return Array.isArray(parsed) ? parsed : SEED_ITEMS;
-  } catch {
-    return SEED_ITEMS;
-  }
-}
-
-function useUiState() {
-  // Lightweight UI filters kept in memory (not persisted).
-  const snapshot = useSyncExternalStore(
-    subscribeUi,
-    () => uiSnapshot,
-    () => uiSnapshot,
-  );
-  return snapshot;
-}
-
 type UiSnapshot = {
   query: string;
   kindFilter: ItemKind | "all";
+  collectionFilter: string | "all" | "none";
   favoritesOnly: boolean;
   sort: SortMode;
 };
@@ -109,6 +88,7 @@ type UiSnapshot = {
 let uiSnapshot: UiSnapshot = {
   query: "",
   kindFilter: "all",
+  collectionFilter: "all",
   favoritesOnly: false,
   sort: "updated",
 };
@@ -125,63 +105,194 @@ function patchUi(patch: Partial<UiSnapshot>) {
   for (const listener of uiListeners) listener();
 }
 
+function useUiState() {
+  return useSyncExternalStore(subscribeUi, () => uiSnapshot, () => uiSnapshot);
+}
+
+function peekLocalCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    return loadLibrary().length;
+  } catch {
+    return 0;
+  }
+}
+
 export function LibraryProvider({ children }: { children: ReactNode }) {
-  const raw = useSyncExternalStore(
-    subscribe,
-    getClientSnapshot,
-    getServerSnapshot,
-  );
-  const items = useMemo(() => parseItems(raw), [raw]);
-  const ready = true;
+  const { data: session, status } = useSession();
+  const authed = Boolean(session?.user?.id);
+  const mode: "local" | "cloud" = authed ? "cloud" : "local";
+
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [localItemCount, setLocalItemCount] = useState(0);
   const ui = useUiState();
 
-  const addItem = useCallback((draft: ItemDraft) => {
-    const item = createItem(draft);
-    const next = [item, ...loadLibrary()];
-    writeItems(next);
-    return item;
-  }, []);
+  const refresh = useCallback(async () => {
+    if (status === "loading") return;
+    setLoading(true);
+    try {
+      if (authed) {
+        const [cloudItems, cloudCollections] = await Promise.all([
+          apiListItems(),
+          apiListCollections(),
+        ]);
+        setItems(cloudItems);
+        setCollections(cloudCollections);
+        setLocalItemCount(peekLocalCount());
+      } else {
+        const local = loadLibrary();
+        setItems(local);
+        setCollections([]);
+        setLocalItemCount(local.length);
+      }
+      setReady(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [authed, status]);
 
-  const editItem = useCallback(
-    (id: string, patch: Partial<ItemDraft> & { favorite?: boolean }) => {
-      writeItems(updateItem(loadLibrary(), id, patch));
+  useEffect(() => {
+    // Fetch library when auth session resolves or mode changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional remote/local hydration
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (mode !== "local" || !ready) return;
+    saveLibrary(items);
+  }, [items, mode, ready]);
+
+  const addItem = useCallback(
+    async (draft: ItemDraft) => {
+      if (mode === "cloud") {
+        const item = await apiCreateItem(draft);
+        setItems((prev) => [item, ...prev]);
+        return item;
+      }
+      const item = createItem(draft);
+      setItems((prev) => [item, ...prev]);
+      return item;
     },
-    [],
+    [mode],
   );
 
-  const removeItem = useCallback((id: string) => {
-    writeItems(deleteItem(loadLibrary(), id));
-  }, []);
+  const editItem = useCallback(
+    async (
+      id: string,
+      patch: Partial<ItemDraft> & { favorite?: boolean },
+    ) => {
+      if (mode === "cloud") {
+        const item = await apiUpdateItem(id, patch);
+        setItems((prev) => prev.map((row) => (row.id === id ? item : row)));
+        return;
+      }
+      setItems((prev) => updateItem(prev, id, patch));
+    },
+    [mode],
+  );
 
-  const toggleFavorite = useCallback((id: string) => {
-    writeItems(
-      loadLibrary().map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              favorite: !item.favorite,
-              updatedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    );
-  }, []);
+  const removeItem = useCallback(
+    async (id: string) => {
+      if (mode === "cloud") {
+        await apiDeleteItem(id);
+        setItems((prev) => prev.filter((row) => row.id !== id));
+        return;
+      }
+      setItems((prev) => deleteItem(prev, id));
+    },
+    [mode],
+  );
+
+  const toggleFavorite = useCallback(
+    async (id: string) => {
+      const current = items.find((item) => item.id === id);
+      if (!current) return;
+      await editItem(id, { favorite: !current.favorite });
+    },
+    [editItem, items],
+  );
 
   const resetToSeed = useCallback(() => {
-    writeItems(SEED_ITEMS);
-  }, []);
+    if (mode === "cloud") return;
+    setItems(SEED_ITEMS);
+    saveLibrary(SEED_ITEMS);
+  }, [mode]);
 
-  const exportJson = useCallback(() => exportLibraryJson(items), [items]);
+  const exportJson = useCallback(async () => {
+    if (mode === "cloud") {
+      const cloud = await apiExportItems();
+      return exportLibraryJson(cloud);
+    }
+    return exportLibraryJson(items);
+  }, [items, mode]);
 
-  const importJson = useCallback((rawJson: string) => {
-    writeItems(importLibraryJson(rawJson));
-  }, []);
+  const importJson = useCallback(
+    async (raw: string) => {
+      const parsed = importLibraryJson(raw);
+      if (mode === "cloud") {
+        await apiImportItems(parsed, false);
+        await refresh();
+        return;
+      }
+      setItems(parsed);
+    },
+    [mode, refresh],
+  );
+
+  const importLocalToCloud = useCallback(async () => {
+    if (mode !== "cloud") return 0;
+    const local = loadLibrary();
+    if (!local.length) return 0;
+    const created = await apiImportItems(local, false);
+    await refresh();
+    return created.length;
+  }, [mode, refresh]);
+
+  const addCollection = useCallback(
+    async (name: string) => {
+      if (mode !== "cloud") return null;
+      const collection = await apiCreateCollection(name);
+      setCollections((prev) =>
+        [...prev, collection].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+      );
+      return collection;
+    },
+    [mode],
+  );
+
+  const removeCollection = useCallback(
+    async (id: string) => {
+      if (mode !== "cloud") return;
+      await apiDeleteCollection(id);
+      setCollections((prev) => prev.filter((c) => c.id !== id));
+      setItems((prev) =>
+        prev.map((item) =>
+          item.collectionId === id ? { ...item, collectionId: null } : item,
+        ),
+      );
+      if (ui.collectionFilter === id) {
+        patchUi({ collectionFilter: "all" });
+      }
+    },
+    [mode, ui.collectionFilter],
+  );
 
   const filteredItems = useMemo(() => {
     const q = ui.query.trim().toLowerCase();
     const list = items.filter((item) => {
       if (ui.kindFilter !== "all" && item.kind !== ui.kindFilter) return false;
       if (ui.favoritesOnly && !item.favorite) return false;
+      if (ui.collectionFilter === "none" && item.collectionId) return false;
+      if (
+        ui.collectionFilter !== "all" &&
+        ui.collectionFilter !== "none" &&
+        item.collectionId !== ui.collectionFilter
+      ) {
+        return false;
+      }
       if (!q) return true;
       const haystack = [
         item.title,
@@ -205,14 +316,19 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, [items, ui]);
 
   const value: LibraryState = {
+    mode,
     items,
+    collections,
     ready,
+    loading,
     query: ui.query,
     kindFilter: ui.kindFilter,
+    collectionFilter: ui.collectionFilter,
     favoritesOnly: ui.favoritesOnly,
     sort: ui.sort,
     setQuery: (query) => patchUi({ query }),
     setKindFilter: (kindFilter) => patchUi({ kindFilter }),
+    setCollectionFilter: (collectionFilter) => patchUi({ collectionFilter }),
     setFavoritesOnly: (favoritesOnly) => patchUi({ favoritesOnly }),
     setSort: (sort) => patchUi({ sort }),
     addItem,
@@ -222,7 +338,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     resetToSeed,
     exportJson,
     importJson,
+    refresh,
+    importLocalToCloud,
+    addCollection,
+    removeCollection,
     filteredItems,
+    localItemCount,
   };
 
   return (

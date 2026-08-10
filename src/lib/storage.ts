@@ -48,6 +48,7 @@ export function createItem(draft: ItemDraft): LibraryItem {
     tags: normalizeTags(draft.tags),
     messages: draft.messages,
     favorite: Boolean(draft.favorite),
+    collectionId: draft.collectionId ?? null,
     createdAt: stamp,
     updatedAt: stamp,
   };

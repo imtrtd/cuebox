@@ -1,6 +1,6 @@
 {
   "snapshot": "POPULATED_FROM_IMAGE",
-  "install": "npm install",
+  "install": "npm install\nnpx prisma generate\nnpx prisma migrate deploy",
   "start": "npm run dev -- --hostname 0.0.0.0 --port 3000",
   "terminals": [
     {
