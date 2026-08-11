@@ -20,6 +20,14 @@ export const SEED_ITEMS: LibraryItem[] = [
 4. Не переписывай весь PR — только точечные улучшения.`,
     tags: ["code-review", "engineering"],
     favorite: true,
+    archived: false,
+    copyCount: 0,
+    models: ["ChatGPT", "Claude", "Copilot"],
+    variableDefs: [
+      { key: "stack", label: "Стек", type: "text", defaultValue: "TypeScript" },
+      { key: "goal", label: "Цель", type: "text" },
+    ],
+    variants: [],
     createdAt: "2026-08-01T10:00:00.000Z",
     updatedAt: "2026-08-01T10:00:00.000Z",
   },
@@ -29,12 +37,14 @@ export const SEED_ITEMS: LibraryItem[] = [
     title: "Как писать переменные в промпте",
     body: `Используйте явные плейсхолдеры вида {{variable}} — так проще искать и подставлять значения.
 
-Хорошая практика:
-- одно слово или snake_case внутри скобок;
-- рядом с плейсхолдером кратко опишите ожидаемый формат;
-- не смешивайте {{}} с другим синтаксисом шаблонов в одном промпте.`,
+Типы переменных Cuebox (как в PromptCodex): text, dropdown, toggle, date.`,
     tags: ["craft", "templates"],
     favorite: false,
+    archived: false,
+    copyCount: 0,
+    models: ["Other"],
+    variableDefs: [],
+    variants: [],
     createdAt: "2026-08-02T12:00:00.000Z",
     updatedAt: "2026-08-02T12:00:00.000Z",
   },
@@ -50,6 +60,11 @@ export const SEED_ITEMS: LibraryItem[] = [
 4. Вынести открытые вопросы в конец.`,
     tags: ["docs", "bootstrap"],
     favorite: false,
+    archived: false,
+    copyCount: 0,
+    models: ["ChatGPT", "Claude"],
+    variableDefs: [],
+    variants: [],
     createdAt: "2026-08-03T09:30:00.000Z",
     updatedAt: "2026-08-03T09:30:00.000Z",
   },
@@ -60,6 +75,11 @@ export const SEED_ITEMS: LibraryItem[] = [
     body: "Короткий общий чат про бренд Cuebox — библиотека промптов и чатов.",
     tags: ["brand", "product"],
     favorite: true,
+    archived: false,
+    copyCount: 0,
+    models: ["ChatGPT", "Claude"],
+    variableDefs: [],
+    variants: [],
     messages: [
       {
         role: "user",

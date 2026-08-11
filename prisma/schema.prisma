@@ -21,29 +21,41 @@ model Collection {
   name      String
   userId    String
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Collection?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Collection[]  @relation("FolderTree")
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   items     LibraryItem[]
 
   @@index([userId])
+  @@index([parentId])
 }
 
 model LibraryItem {
-  id           String      @id @default(cuid())
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  collectionId String?
-  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
-  kind         String
-  title        String
-  body         String
-  tags         String      @default("[]")
-  messages     String?
-  favorite     Boolean     @default(false)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId    String?
+  collection      Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  kind            String
+  title           String
+  body            String
+  tags            String      @default("[]")
+  messages        String?
+  favorite        Boolean     @default(false)
+  archived        Boolean     @default(false)
+  copyCount       Int         @default(0)
+  lastUsedAt      DateTime?
+  models          String      @default("[]")
+  variableDefs    String      @default("[]")
+  variants        String      @default("[]")
+  activeVariantId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   @@index([userId])
   @@index([collectionId])
   @@index([userId, kind])
+  @@index([userId, archived])
 }

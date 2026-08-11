@@ -60,6 +60,12 @@ export function ItemList({
               <p className="item-row-preview">{item.body}</p>
               <div className="item-row-bottom">
                 <div className="tag-row">
+                  {item.archived ? (
+                    <span className="tag">архив</span>
+                  ) : null}
+                  {(item.copyCount ?? 0) > 0 ? (
+                    <span className="tag">{`×${item.copyCount}`}</span>
+                  ) : null}
                   {item.tags.slice(0, 3).map((tag) => (
                     <span key={tag} className="tag">
                       {tag}

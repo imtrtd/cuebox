@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
   messagesToJson,
+  modelsToJson,
   serializeItem,
   tagsToJson,
+  variableDefsToJson,
+  variantsToJson,
 } from "@/lib/item-mapper";
 import { requireUserId } from "@/lib/session";
-import type { ChatMessage, ItemKind, LibraryItem } from "@/lib/types";
+import type { LibraryItem } from "@/lib/types";
 import { KIND_ORDER } from "@/lib/types";
 
 const KIND_SET = new Set<string>(KIND_ORDER);
@@ -36,20 +39,26 @@ export async function POST(request: Request) {
 
     const created = [];
     for (const item of items) {
-      const kind = item.kind;
-      if (!kind || !KIND_SET.has(kind)) continue;
+      if (!item.kind || !KIND_SET.has(item.kind)) continue;
       const title = item.title?.trim();
       if (!title) continue;
 
       const row = await prisma.libraryItem.create({
         data: {
           userId,
-          kind: kind as ItemKind,
+          kind: item.kind,
           title,
           body: (item.body ?? title).trim(),
           tags: tagsToJson(item.tags),
-          messages: messagesToJson(item.messages as ChatMessage[] | undefined),
+          messages: messagesToJson(item.messages),
           favorite: Boolean(item.favorite),
+          archived: Boolean(item.archived),
+          copyCount: item.copyCount ?? 0,
+          lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
+          models: modelsToJson(item.models),
+          variableDefs: variableDefsToJson(item.variableDefs),
+          variants: variantsToJson(item.variants),
+          activeVariantId: item.activeVariantId ?? null,
           collectionId: null,
           createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
           updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,

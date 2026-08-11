@@ -2,23 +2,38 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
   messagesToJson,
+  modelsToJson,
   serializeItem,
   tagsToJson,
+  variableDefsToJson,
+  variantsToJson,
 } from "@/lib/item-mapper";
 import { requireUserId } from "@/lib/session";
-import type { ChatMessage, ItemKind } from "@/lib/types";
+import type {
+  AiModel,
+  ChatMessage,
+  ItemKind,
+  PromptVariant,
+  VariableDef,
+} from "@/lib/types";
 import { KIND_ORDER } from "@/lib/types";
 
 const KIND_SET = new Set<string>(KIND_ORDER);
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const includeArchived = searchParams.get("archived") === "1";
+
   const rows = await prisma.libraryItem.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(includeArchived ? {} : { archived: false }),
+    },
     orderBy: { updatedAt: "desc" },
   });
 
@@ -39,7 +54,12 @@ export async function POST(request: Request) {
       tags?: string[];
       messages?: ChatMessage[];
       favorite?: boolean;
+      archived?: boolean;
       collectionId?: string | null;
+      models?: AiModel[];
+      variableDefs?: VariableDef[];
+      variants?: PromptVariant[];
+      activeVariantId?: string | null;
     };
 
     const kind = body.kind;
@@ -74,7 +94,12 @@ export async function POST(request: Request) {
         tags: tagsToJson(body.tags),
         messages: messagesToJson(body.messages),
         favorite: Boolean(body.favorite),
+        archived: Boolean(body.archived),
         collectionId: body.collectionId ?? null,
+        models: modelsToJson(body.models),
+        variableDefs: variableDefsToJson(body.variableDefs),
+        variants: variantsToJson(body.variants),
+        activeVariantId: body.activeVariantId ?? null,
       },
     });
 

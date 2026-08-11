@@ -39,7 +39,7 @@ import type {
   LibraryItem,
 } from "@/lib/types";
 
-type SortMode = "updated" | "created" | "title";
+type SortMode = "updated" | "created" | "title" | "usage";
 
 interface LibraryState {
   mode: "local" | "cloud";
@@ -51,25 +51,36 @@ interface LibraryState {
   kindFilter: ItemKind | "all";
   collectionFilter: string | "all" | "none";
   favoritesOnly: boolean;
+  showArchived: boolean;
   sort: SortMode;
   setQuery: (value: string) => void;
   setKindFilter: (value: ItemKind | "all") => void;
   setCollectionFilter: (value: string | "all" | "none") => void;
   setFavoritesOnly: (value: boolean) => void;
+  setShowArchived: (value: boolean) => void;
   setSort: (value: SortMode) => void;
   addItem: (draft: ItemDraft) => Promise<LibraryItem>;
   editItem: (
     id: string,
-    patch: Partial<ItemDraft> & { favorite?: boolean },
+    patch: Partial<ItemDraft> & {
+      favorite?: boolean;
+      archived?: boolean;
+      incrementCopy?: boolean;
+    },
   ) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
+  toggleArchived: (id: string) => Promise<void>;
+  recordCopy: (id: string) => Promise<void>;
   resetToSeed: () => void;
   exportJson: () => Promise<string>;
   importJson: (raw: string) => Promise<void>;
   refresh: () => Promise<void>;
   importLocalToCloud: () => Promise<number>;
-  addCollection: (name: string) => Promise<Collection | null>;
+  addCollection: (
+    name: string,
+    parentId?: string | null,
+  ) => Promise<Collection | null>;
   removeCollection: (id: string) => Promise<void>;
   filteredItems: LibraryItem[];
   localItemCount: number;
@@ -82,6 +93,7 @@ type UiSnapshot = {
   kindFilter: ItemKind | "all";
   collectionFilter: string | "all" | "none";
   favoritesOnly: boolean;
+  showArchived: boolean;
   sort: SortMode;
 };
 
@@ -90,6 +102,7 @@ let uiSnapshot: UiSnapshot = {
   kindFilter: "all",
   collectionFilter: "all",
   favoritesOnly: false,
+  showArchived: false,
   sort: "updated",
 };
 
@@ -136,7 +149,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     try {
       if (authed) {
         const [cloudItems, cloudCollections] = await Promise.all([
-          apiListItems(),
+          apiListItems(true),
           apiListCollections(),
         ]);
         setItems(cloudItems);
@@ -155,7 +168,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, [authed, status]);
 
   useEffect(() => {
-    // Fetch library when auth session resolves or mode changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional remote/local hydration
     void refresh();
   }, [refresh]);
@@ -182,7 +194,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const editItem = useCallback(
     async (
       id: string,
-      patch: Partial<ItemDraft> & { favorite?: boolean },
+      patch: Partial<ItemDraft> & {
+        favorite?: boolean;
+        archived?: boolean;
+        incrementCopy?: boolean;
+      },
     ) => {
       if (mode === "cloud") {
         const item = await apiUpdateItem(id, patch);
@@ -213,6 +229,22 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       await editItem(id, { favorite: !current.favorite });
     },
     [editItem, items],
+  );
+
+  const toggleArchived = useCallback(
+    async (id: string) => {
+      const current = items.find((item) => item.id === id);
+      if (!current) return;
+      await editItem(id, { archived: !current.archived });
+    },
+    [editItem, items],
+  );
+
+  const recordCopy = useCallback(
+    async (id: string) => {
+      await editItem(id, { incrementCopy: true });
+    },
+    [editItem],
   );
 
   const resetToSeed = useCallback(() => {
@@ -252,9 +284,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, [mode, refresh]);
 
   const addCollection = useCallback(
-    async (name: string) => {
+    async (name: string, parentId?: string | null) => {
       if (mode !== "cloud") return null;
-      const collection = await apiCreateCollection(name);
+      const collection = await apiCreateCollection(name, parentId);
       setCollections((prev) =>
         [...prev, collection].sort((a, b) => a.name.localeCompare(b.name, "ru")),
       );
@@ -267,7 +299,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (mode !== "cloud") return;
       await apiDeleteCollection(id);
-      setCollections((prev) => prev.filter((c) => c.id !== id));
+      setCollections((prev) =>
+        prev.filter((c) => c.id !== id && c.parentId !== id),
+      );
       setItems((prev) =>
         prev.map((item) =>
           item.collectionId === id ? { ...item, collectionId: null } : item,
@@ -283,6 +317,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const filteredItems = useMemo(() => {
     const q = ui.query.trim().toLowerCase();
     const list = items.filter((item) => {
+      if (!ui.showArchived && item.archived) return false;
+      if (ui.showArchived && !item.archived) return false;
       if (ui.kindFilter !== "all" && item.kind !== ui.kindFilter) return false;
       if (ui.favoritesOnly && !item.favorite) return false;
       if (ui.collectionFilter === "none" && item.collectionId) return false;
@@ -298,6 +334,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         item.title,
         item.body,
         item.tags.join(" "),
+        item.models.join(" "),
         ...(item.messages?.map((m) => m.content) ?? []),
       ]
         .join("\n")
@@ -308,6 +345,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     return [...list].sort((a, b) => {
       if (ui.sort === "title") {
         return a.title.localeCompare(b.title, "ru");
+      }
+      if (ui.sort === "usage") {
+        return (b.copyCount ?? 0) - (a.copyCount ?? 0);
       }
       const left = ui.sort === "created" ? a.createdAt : a.updatedAt;
       const right = ui.sort === "created" ? b.createdAt : b.updatedAt;
@@ -325,16 +365,20 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     kindFilter: ui.kindFilter,
     collectionFilter: ui.collectionFilter,
     favoritesOnly: ui.favoritesOnly,
+    showArchived: ui.showArchived,
     sort: ui.sort,
     setQuery: (query) => patchUi({ query }),
     setKindFilter: (kindFilter) => patchUi({ kindFilter }),
     setCollectionFilter: (collectionFilter) => patchUi({ collectionFilter }),
     setFavoritesOnly: (favoritesOnly) => patchUi({ favoritesOnly }),
+    setShowArchived: (showArchived) => patchUi({ showArchived }),
     setSort: (sort) => patchUi({ sort }),
     addItem,
     editItem,
     removeItem,
     toggleFavorite,
+    toggleArchived,
+    recordCopy,
     resetToSeed,
     exportJson,
     importJson,

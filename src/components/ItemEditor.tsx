@@ -3,12 +3,21 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useLibrary } from "@/lib/library-context";
 import type {
+  AiModel,
   ChatMessage,
   ItemDraft,
   ItemKind,
   LibraryItem,
+  VariableDef,
+  VariableType,
 } from "@/lib/types";
-import { KIND_LABELS, KIND_ORDER } from "@/lib/types";
+import {
+  AI_MODELS,
+  createVariableDefsFromBody,
+  KIND_LABELS,
+  KIND_ORDER,
+  VARIABLE_TYPES,
+} from "@/lib/types";
 
 interface ItemEditorProps {
   open: boolean;
@@ -18,30 +27,21 @@ interface ItemEditorProps {
   onSave: (draft: ItemDraft, id?: string) => void;
 }
 
-function buildInitialState(
-  initial: LibraryItem | null | undefined,
-  defaultKind: ItemKind,
-) {
-  if (initial) {
-    return {
-      kind: initial.kind,
-      title: initial.title,
-      body: initial.body,
-      tags: initial.tags.join(", "),
-      collectionId: initial.collectionId ?? "",
-      messages: initial.messages?.length
-        ? initial.messages
-        : [{ role: "user" as const, content: "" }],
-    };
+function folderLabel(
+  collections: { id: string; name: string; parentId?: string | null }[],
+  id: string,
+): string {
+  const parts: string[] = [];
+  let cursor: string | null | undefined = id;
+  let guard = 0;
+  while (cursor && guard < 6) {
+    const node = collections.find((c) => c.id === cursor);
+    if (!node) break;
+    parts.unshift(node.name);
+    cursor = node.parentId;
+    guard += 1;
   }
-  return {
-    kind: defaultKind,
-    title: "",
-    body: "",
-    tags: "",
-    collectionId: "",
-    messages: [{ role: "user" as const, content: "" }],
-  };
+  return parts.join(" / ");
 }
 
 function ItemEditorForm({
@@ -57,13 +57,24 @@ function ItemEditorForm({
 }) {
   const titleId = useId();
   const { collections, mode } = useLibrary();
-  const seed = buildInitialState(initial, defaultKind);
-  const [kind, setKind] = useState<ItemKind>(seed.kind);
-  const [title, setTitle] = useState(seed.title);
-  const [body, setBody] = useState(seed.body);
-  const [tags, setTags] = useState(seed.tags);
-  const [collectionId, setCollectionId] = useState(seed.collectionId);
-  const [messages, setMessages] = useState<ChatMessage[]>(seed.messages);
+  const [kind, setKind] = useState<ItemKind>(initial?.kind ?? defaultKind);
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [body, setBody] = useState(initial?.body ?? "");
+  const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
+  const [collectionId, setCollectionId] = useState(
+    initial?.collectionId ?? "",
+  );
+  const [models, setModels] = useState<AiModel[]>(initial?.models ?? []);
+  const [variableDefs, setVariableDefs] = useState<VariableDef[]>(
+    initial?.variableDefs?.length
+      ? initial.variableDefs
+      : createVariableDefsFromBody(initial?.body ?? ""),
+  );
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    initial?.messages?.length
+      ? initial.messages
+      : [{ role: "user", content: "" }],
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,10 +85,13 @@ function ItemEditorForm({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function updateMessage(
-    index: number,
-    patch: Partial<ChatMessage>,
-  ) {
+  function toggleModel(model: AiModel) {
+    setModels((prev) =>
+      prev.includes(model) ? prev.filter((m) => m !== model) : [...prev, model],
+    );
+  }
+
+  function updateMessage(index: number, patch: Partial<ChatMessage>) {
     setMessages((prev) =>
       prev.map((msg, i) => (i === index ? { ...msg, ...patch } : msg)),
     );
@@ -97,10 +111,7 @@ function ItemEditorForm({
     const cleanedMessages =
       kind === "chat"
         ? messages
-            .map((m) => ({
-              role: m.role,
-              content: m.content.trim(),
-            }))
+            .map((m) => ({ role: m.role, content: m.content.trim() }))
             .filter((m) => m.content)
         : undefined;
 
@@ -119,6 +130,11 @@ function ItemEditorForm({
         .filter(Boolean),
       messages: cleanedMessages,
       favorite: initial?.favorite,
+      archived: initial?.archived ?? false,
+      models,
+      variableDefs,
+      variants: initial?.variants ?? [],
+      activeVariantId: initial?.activeVariantId ?? null,
       collectionId: collectionId || null,
     };
 
@@ -129,7 +145,7 @@ function ItemEditorForm({
   return (
     <div className="modal-root" role="presentation" onClick={onClose}>
       <div
-        className="modal-panel"
+        className="modal-panel wide"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -171,7 +187,7 @@ function ItemEditorForm({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Краткое имя для быстрого поиска"
+              placeholder="Краткое имя"
               autoFocus
             />
           </label>
@@ -182,15 +198,7 @@ function ItemEditorForm({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={kind === "chat" ? 3 : 10}
-              placeholder={
-                kind === "prompt"
-                  ? "Промпт с плейсхолдерами {{variable}}…"
-                  : kind === "tip"
-                    ? "Подсказка или best practice…"
-                    : kind === "task"
-                      ? "Общая задача для ассистента…"
-                      : "О чём этот чат…"
-              }
+              placeholder="Промпт с {{variable}} или {variable}…"
             />
           </label>
 
@@ -231,7 +239,6 @@ function ItemEditorForm({
                       updateMessage(index, { content: e.target.value })
                     }
                     rows={3}
-                    placeholder="Текст сообщения…"
                   />
                   <button
                     type="button"
@@ -248,9 +255,153 @@ function ItemEditorForm({
             </div>
           ) : null}
 
+          <fieldset className="kind-picker">
+            <legend>Модели ИИ</legend>
+            <div className="kind-picker-row">
+              {AI_MODELS.map((model) => (
+                <label
+                  key={model}
+                  className={models.includes(model) ? "pill active" : "pill"}
+                >
+                  <input
+                    type="checkbox"
+                    checked={models.includes(model)}
+                    onChange={() => toggleModel(model)}
+                  />
+                  {model}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {kind !== "chat" ? (
+            <div className="vars-editor">
+              <div className="chat-editor-head">
+                <span>Переменные</span>
+                <div className="banner-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() =>
+                      setVariableDefs(createVariableDefsFromBody(body))
+                    }
+                  >
+                    Из текста
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() =>
+                      setVariableDefs((prev) => [
+                        ...prev,
+                        {
+                          key: `var${prev.length + 1}`,
+                          label: "",
+                          type: "text",
+                          defaultValue: "",
+                        },
+                      ])
+                    }
+                  >
+                    + Переменная
+                  </button>
+                </div>
+              </div>
+              {variableDefs.map((def, index) => (
+                <div key={index} className="var-row">
+                  <input
+                    value={def.key}
+                    placeholder="key"
+                    onChange={(e) =>
+                      setVariableDefs((prev) =>
+                        prev.map((row, i) =>
+                          i === index ? { ...row, key: e.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                  <input
+                    value={def.label ?? ""}
+                    placeholder="Подпись"
+                    onChange={(e) =>
+                      setVariableDefs((prev) =>
+                        prev.map((row, i) =>
+                          i === index ? { ...row, label: e.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                  <select
+                    value={def.type}
+                    onChange={(e) =>
+                      setVariableDefs((prev) =>
+                        prev.map((row, i) =>
+                          i === index
+                            ? { ...row, type: e.target.value as VariableType }
+                            : row,
+                        ),
+                      )
+                    }
+                  >
+                    {VARIABLE_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={def.defaultValue ?? ""}
+                    placeholder="default"
+                    onChange={(e) =>
+                      setVariableDefs((prev) =>
+                        prev.map((row, i) =>
+                          i === index
+                            ? { ...row, defaultValue: e.target.value }
+                            : row,
+                        ),
+                      )
+                    }
+                  />
+                  {def.type === "dropdown" ? (
+                    <input
+                      value={(def.options ?? []).join(", ")}
+                      placeholder="опции через запятую"
+                      onChange={(e) =>
+                        setVariableDefs((prev) =>
+                          prev.map((row, i) =>
+                            i === index
+                              ? {
+                                  ...row,
+                                  options: e.target.value
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean),
+                                }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() =>
+                      setVariableDefs((prev) =>
+                        prev.filter((_, i) => i !== index),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           {mode === "cloud" ? (
             <label className="field">
-              <span>Коллекция</span>
+              <span>Папка / коллекция</span>
               <select
                 value={collectionId}
                 onChange={(e) => setCollectionId(e.target.value)}
@@ -258,7 +409,7 @@ function ItemEditorForm({
                 <option value="">Без коллекции</option>
                 {collections.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {folderLabel(collections, c.id)}
                   </option>
                 ))}
               </select>
@@ -298,9 +449,7 @@ export function ItemEditor({
   onSave,
 }: ItemEditorProps) {
   if (!open) return null;
-
   const formKey = initial?.id ?? `new-${defaultKind}`;
-
   return (
     <ItemEditorForm
       key={formKey}

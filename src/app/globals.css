@@ -844,6 +844,99 @@ a {
   resize: vertical;
 }
 
+.modal-panel.wide {
+  width: min(820px, 100%);
+}
+
+.brand-link {
+  text-decoration: none;
+  color: inherit;
+  background: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.usage-line {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.variants-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+  align-items: center;
+}
+
+.model-tag {
+  background: rgba(15, 107, 92, 0.1);
+  border-color: rgba(15, 107, 92, 0.18);
+  color: var(--accent-deep);
+}
+
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.9rem;
+}
+
+.explore-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.explore-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.explore-card-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.vars-editor,
+.var-row {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.var-row {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  align-items: center;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.var-row input,
+.var-row select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+}
+
+.var-code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     width: min(100% - 1.25rem, 1200px);

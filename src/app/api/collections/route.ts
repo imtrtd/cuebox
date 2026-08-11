@@ -1,21 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { serializeCollection } from "@/lib/item-mapper";
 import { requireUserId } from "@/lib/session";
-import type { Collection } from "@/lib/types";
-
-function serializeCollection(row: {
-  id: string;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date;
-}): Collection {
-  return {
-    id: row.id,
-    name: row.name,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
 
 export async function GET() {
   const userId = await requireUserId();
@@ -40,7 +26,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { name?: string };
+    const body = (await request.json()) as {
+      name?: string;
+      parentId?: string | null;
+    };
     const name = body.name?.trim() ?? "";
     if (!name) {
       return NextResponse.json(
@@ -49,8 +38,42 @@ export async function POST(request: Request) {
       );
     }
 
+    if (body.parentId) {
+      const parent = await prisma.collection.findFirst({
+        where: { id: body.parentId, userId },
+      });
+      if (!parent) {
+        return NextResponse.json(
+          { error: "Родительская папка не найдена" },
+          { status: 400 },
+        );
+      }
+      // Cap nesting at 5 levels (PromptCodex-style)
+      let depth = 1;
+      let cursor: string | null = parent.parentId;
+      while (cursor && depth < 6) {
+        const next = await prisma.collection.findFirst({
+          where: { id: cursor, userId },
+          select: { parentId: true },
+        });
+        if (!next) break;
+        depth += 1;
+        cursor = next.parentId;
+      }
+      if (depth >= 5) {
+        return NextResponse.json(
+          { error: "Максимум 5 уровней вложенности папок" },
+          { status: 400 },
+        );
+      }
+    }
+
     const row = await prisma.collection.create({
-      data: { userId, name },
+      data: {
+        userId,
+        name,
+        parentId: body.parentId ?? null,
+      },
     });
 
     return NextResponse.json(

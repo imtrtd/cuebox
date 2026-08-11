@@ -1,7 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useLibrary } from "@/lib/library-context";
 import { KIND_LABELS, KIND_ORDER, type ItemKind } from "@/lib/types";
+
+function folderLabel(
+  collections: { id: string; name: string; parentId?: string | null }[],
+  id: string,
+): string {
+  const parts: string[] = [];
+  let cursor: string | null | undefined = id;
+  let guard = 0;
+  while (cursor && guard < 6) {
+    const node = collections.find((c) => c.id === cursor);
+    if (!node) break;
+    parts.unshift(node.name);
+    cursor = node.parentId;
+    guard += 1;
+  }
+  return parts.join(" / ");
+}
 
 export function Toolbar({
   onCreate,
@@ -19,6 +37,8 @@ export function Toolbar({
     setCollectionFilter,
     favoritesOnly,
     setFavoritesOnly,
+    showArchived,
+    setShowArchived,
     sort,
     setSort,
     exportJson,
@@ -48,13 +68,17 @@ export function Toolbar({
   }
 
   async function handleAddCollection() {
-    const name = window.prompt("Название коллекции");
+    const name = window.prompt("Название папки");
     if (!name?.trim()) return;
+    const parentId =
+      collectionFilter !== "all" && collectionFilter !== "none"
+        ? collectionFilter
+        : null;
     try {
-      await addCollection(name.trim());
+      await addCollection(name.trim(), parentId);
     } catch (err) {
       window.alert(
-        err instanceof Error ? err.message : "Не удалось создать коллекцию",
+        err instanceof Error ? err.message : "Не удалось создать папку",
       );
     }
   }
@@ -64,27 +88,23 @@ export function Toolbar({
       <div className="toolbar-row">
         <label className="search-field">
           <span className="sr-only">Поиск</span>
-          <svg
-            className="search-icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
-          </svg>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по названию, тексту, тегам…"
+            placeholder="Поиск по названию, тексту, тегам, моделям…"
             type="search"
           />
         </label>
 
         <div className="toolbar-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => void handleExport()}>
+          <Link href="/explore" className="btn btn-ghost">
+            Explore
+          </Link>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => void handleExport()}
+          >
             Экспорт
           </button>
           <button type="button" className="btn btn-ghost" onClick={onImportClick}>
@@ -128,7 +148,7 @@ export function Toolbar({
         <div className="toolbar-side">
           {mode === "cloud" ? (
             <label className="sort-field">
-              <span>Коллекция</span>
+              <span>Папка</span>
               <select
                 value={collectionFilter}
                 onChange={(e) =>
@@ -138,10 +158,10 @@ export function Toolbar({
                 }
               >
                 <option value="all">Все</option>
-                <option value="none">Без коллекции</option>
+                <option value="none">Без папки</option>
                 {collections.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {folderLabel(collections, c.id)}
                   </option>
                 ))}
               </select>
@@ -154,7 +174,7 @@ export function Toolbar({
               className="btn btn-ghost"
               onClick={() => void handleAddCollection()}
             >
-              + Коллекция
+              + Папка
             </button>
           ) : null}
 
@@ -166,15 +186,12 @@ export function Toolbar({
               className="btn btn-ghost"
               onClick={() => {
                 const col = collections.find((c) => c.id === collectionFilter);
-                if (
-                  col &&
-                  window.confirm(`Удалить коллекцию «${col.name}»?`)
-                ) {
+                if (col && window.confirm(`Удалить папку «${col.name}»?`)) {
                   void removeCollection(col.id);
                 }
               }}
             >
-              Удалить коллекцию
+              Удалить папку
             </button>
           ) : null}
 
@@ -184,7 +201,16 @@ export function Toolbar({
               checked={favoritesOnly}
               onChange={(e) => setFavoritesOnly(e.target.checked)}
             />
-            Только избранное
+            Избранное
+          </label>
+
+          <label className="check-line">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            Архив
           </label>
 
           <label className="sort-field">
@@ -192,12 +218,19 @@ export function Toolbar({
             <select
               value={sort}
               onChange={(e) =>
-                setSort(e.target.value as "updated" | "created" | "title")
+                setSort(
+                  e.target.value as
+                    | "updated"
+                    | "created"
+                    | "title"
+                    | "usage",
+                )
               }
             >
               <option value="updated">По обновлению</option>
               <option value="created">По созданию</option>
               <option value="title">По названию</option>
+              <option value="usage">По использованию</option>
             </select>
           </label>
 

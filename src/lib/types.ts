@@ -1,8 +1,35 @@
 export type ItemKind = "prompt" | "tip" | "task" | "chat";
 
+export type VariableType = "text" | "dropdown" | "toggle" | "date";
+
+export type AiModel =
+  | "ChatGPT"
+  | "Claude"
+  | "Gemini"
+  | "Copilot"
+  | "Perplexity"
+  | "Grok"
+  | "DeepSeek"
+  | "Other";
+
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
+}
+
+export interface VariableDef {
+  key: string;
+  label?: string;
+  type: VariableType;
+  options?: string[];
+  defaultValue?: string;
+}
+
+export interface PromptVariant {
+  id: string;
+  name: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface LibraryItem {
@@ -14,6 +41,13 @@ export interface LibraryItem {
   /** For kind === "chat" — optional structured transcript */
   messages?: ChatMessage[];
   favorite: boolean;
+  archived: boolean;
+  copyCount: number;
+  lastUsedAt?: string | null;
+  models: AiModel[];
+  variableDefs: VariableDef[];
+  variants: PromptVariant[];
+  activeVariantId?: string | null;
   collectionId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -22,15 +56,19 @@ export interface LibraryItem {
 export interface Collection {
   id: string;
   name: string;
+  parentId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export type ItemDraft = Omit<
   LibraryItem,
-  "id" | "createdAt" | "updatedAt" | "favorite"
+  "id" | "createdAt" | "updatedAt" | "favorite" | "copyCount" | "lastUsedAt"
 > & {
   favorite?: boolean;
+  archived?: boolean;
+  copyCount?: number;
+  lastUsedAt?: string | null;
 };
 
 export const KIND_LABELS: Record<ItemKind, string> = {
@@ -42,9 +80,30 @@ export const KIND_LABELS: Record<ItemKind, string> = {
 
 export const KIND_ORDER: ItemKind[] = ["prompt", "tip", "task", "chat"];
 
+export const AI_MODELS: AiModel[] = [
+  "ChatGPT",
+  "Claude",
+  "Gemini",
+  "Copilot",
+  "Perplexity",
+  "Grok",
+  "DeepSeek",
+  "Other",
+];
+
+export const VARIABLE_TYPES: VariableType[] = [
+  "text",
+  "dropdown",
+  "toggle",
+  "date",
+];
+
+/** Supports PromptCodex-style {var} and Cuebox {{var}} */
+const PLACEHOLDER_RE = /\{\{?\s*([a-zA-Z0-9_.-]+)\s*\}?\}/g;
+
 export function extractPlaceholders(text: string): string[] {
   const found = new Set<string>();
-  const re = /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g;
+  const re = new RegExp(PLACEHOLDER_RE.source, "g");
   let match: RegExpExecArray | null;
   while ((match = re.exec(text)) !== null) {
     found.add(match[1]);
@@ -56,7 +115,25 @@ export function applyPlaceholders(
   text: string,
   values: Record<string, string>,
 ): string {
-  return text.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_, key: string) => {
-    return values[key] ?? `{{${key}}}`;
-  });
+  return text.replace(
+    new RegExp(PLACEHOLDER_RE.source, "g"),
+    (_, key: string) => values[key] ?? `{{${key}}}`,
+  );
+}
+
+export function effectiveBody(item: LibraryItem): string {
+  if (item.activeVariantId) {
+    const variant = item.variants.find((v) => v.id === item.activeVariantId);
+    if (variant) return variant.body;
+  }
+  return item.body;
+}
+
+export function createVariableDefsFromBody(body: string): VariableDef[] {
+  return extractPlaceholders(body).map((key) => ({
+    key,
+    label: key,
+    type: "text" as const,
+    defaultValue: "",
+  }));
 }

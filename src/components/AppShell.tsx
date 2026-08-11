@@ -126,7 +126,8 @@ export function AppShell() {
         <div className="brand-block">
           <p className="brand">Cuebox</p>
           <p className="tagline">
-            Личная библиотека промптов, подсказок, задач и чатов с ИИ
+            Личная библиотека промптов в духе PromptCodex — с папками,
+            переменными, вариантами и синхронизацией
           </p>
         </div>
         <div className="header-actions">

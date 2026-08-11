@@ -2,11 +2,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
   messagesToJson,
+  modelsToJson,
   serializeItem,
   tagsToJson,
+  variableDefsToJson,
+  variantsToJson,
 } from "@/lib/item-mapper";
 import { requireUserId } from "@/lib/session";
-import type { ChatMessage, ItemKind } from "@/lib/types";
+import type {
+  AiModel,
+  ChatMessage,
+  ItemKind,
+  PromptVariant,
+  VariableDef,
+} from "@/lib/types";
 import { KIND_ORDER } from "@/lib/types";
 
 const KIND_SET = new Set<string>(KIND_ORDER);
@@ -35,7 +44,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       tags?: string[];
       messages?: ChatMessage[] | null;
       favorite?: boolean;
+      archived?: boolean;
       collectionId?: string | null;
+      models?: AiModel[];
+      variableDefs?: VariableDef[];
+      variants?: PromptVariant[];
+      activeVariantId?: string | null;
+      incrementCopy?: boolean;
     };
 
     if (body.kind !== undefined && !KIND_SET.has(body.kind)) {
@@ -66,8 +81,24 @@ export async function PATCH(request: Request, context: RouteContext) {
             ? messagesToJson(body.messages ?? undefined)
             : undefined,
         favorite: body.favorite !== undefined ? body.favorite : undefined,
+        archived: body.archived !== undefined ? body.archived : undefined,
         collectionId:
           body.collectionId !== undefined ? body.collectionId : undefined,
+        models: body.models !== undefined ? modelsToJson(body.models) : undefined,
+        variableDefs:
+          body.variableDefs !== undefined
+            ? variableDefsToJson(body.variableDefs)
+            : undefined,
+        variants:
+          body.variants !== undefined ? variantsToJson(body.variants) : undefined,
+        activeVariantId:
+          body.activeVariantId !== undefined ? body.activeVariantId : undefined,
+        ...(body.incrementCopy
+          ? {
+              copyCount: { increment: 1 },
+              lastUsedAt: new Date(),
+            }
+          : {}),
       },
     });
 

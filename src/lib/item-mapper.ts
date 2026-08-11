@@ -1,33 +1,50 @@
-import type { LibraryItem as DbItem } from "@prisma/client";
-import type { ChatMessage, ItemKind, LibraryItem } from "@/lib/types";
+import type { LibraryItem as DbItem, Collection as DbCollection } from "@prisma/client";
+import type {
+  AiModel,
+  ChatMessage,
+  Collection,
+  LibraryItem,
+  PromptVariant,
+  VariableDef,
+} from "@/lib/types";
+
+function parseJsonArray<T>(raw: string | null | undefined, fallback: T[] = []): T[] {
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw) as T[];
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export function serializeItem(row: DbItem): LibraryItem {
-  let tags: string[] = [];
-  try {
-    tags = JSON.parse(row.tags) as string[];
-    if (!Array.isArray(tags)) tags = [];
-  } catch {
-    tags = [];
-  }
-
-  let messages: ChatMessage[] | undefined;
-  if (row.messages) {
-    try {
-      messages = JSON.parse(row.messages) as ChatMessage[];
-    } catch {
-      messages = undefined;
-    }
-  }
-
   return {
     id: row.id,
-    kind: row.kind as ItemKind,
+    kind: row.kind as LibraryItem["kind"],
     title: row.title,
     body: row.body,
-    tags,
-    messages,
+    tags: parseJsonArray<string>(row.tags),
+    messages: row.messages ? parseJsonArray<ChatMessage>(row.messages) : undefined,
     favorite: row.favorite,
+    archived: row.archived,
+    copyCount: row.copyCount,
+    lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+    models: parseJsonArray<AiModel>(row.models),
+    variableDefs: parseJsonArray<VariableDef>(row.variableDefs),
+    variants: parseJsonArray<PromptVariant>(row.variants),
+    activeVariantId: row.activeVariantId,
     collectionId: row.collectionId ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function serializeCollection(row: DbCollection): Collection {
+  return {
+    id: row.id,
+    name: row.name,
+    parentId: row.parentId ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -46,4 +63,16 @@ export function messagesToJson(
 ): string | null {
   if (!messages?.length) return null;
   return JSON.stringify(messages);
+}
+
+export function modelsToJson(models: AiModel[] | undefined): string {
+  return JSON.stringify(models ?? []);
+}
+
+export function variableDefsToJson(defs: VariableDef[] | undefined): string {
+  return JSON.stringify(defs ?? []);
+}
+
+export function variantsToJson(variants: PromptVariant[] | undefined): string {
+  return JSON.stringify(variants ?? []);
 }

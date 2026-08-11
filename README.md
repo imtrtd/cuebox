@@ -1,21 +1,24 @@
 # Cuebox
 
-Личная библиотека для хранения **промптов**, **подсказок**, **общих задач** и **чатов с ИИ** с синхронизацией между устройствами.
+Личная библиотека промптов в духе **PromptCodex**: папки, переменные, варианты, каталог Explore, учёт копирований и облачная синхронизация.
 
 ## Возможности
 
-- Типы записей: промпт, подсказка, задача, чат
-- Локальный режим (гость) на `localStorage`
-- Облачный режим: аккаунт (email + пароль), библиотека в SQLite через Prisma
-- Импорт локальных записей в облако после входа
-- Поиск, фильтры по типу/коллекции, избранное, сортировка
-- Коллекции, плейсхолдеры `{{variable}}`, редактор сообщений чата
-- Импорт и экспорт JSON
+- Типы: промпт, подсказка, задача, чат
+- Папки/коллекции с вложенностью до 5 уровней
+- Избранное и архив
+- Модели ИИ (ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek)
+- Переменные `{{var}}` / `{var}` типов text, dropdown, toggle, date + default values
+- Варианты промпта (несколько версий тела)
+- Explore-каталог готовых промптов с импортом в один клик
+- Статистика копирований и сортировка по использованию
+- Локальный режим (`localStorage`) и облако (аккаунт + Prisma/SQLite)
+- Импорт/экспорт JSON
 
 ## Стек
 
-- Next.js (App Router) + React + TypeScript
-- Auth.js (NextAuth v5) — credentials
+- Next.js App Router + React + TypeScript
+- Auth.js (credentials)
 - Prisma + SQLite
 - Tailwind CSS v4
 
@@ -23,54 +26,21 @@
 
 ```bash
 cp .env.example .env
-# задайте AUTH_SECRET (openssl rand -base64 32) и DATABASE_URL
-
 npm install
 npx prisma migrate deploy
 npm run dev
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000).
-
-```bash
-npm run build
-npm start
-```
+Откройте [http://localhost:3000](http://localhost:3000) и [http://localhost:3000/explore](http://localhost:3000/explore).
 
 ## Переменные окружения
 
 | Переменная | Описание |
 |------------|----------|
 | `AUTH_SECRET` | Секрет Auth.js |
-| `DATABASE_URL` | Prisma URL, по умолчанию `file:./dev.db` |
-| `AUTH_URL` | Публичный URL приложения (для production) |
+| `DATABASE_URL` | Prisma URL (`file:./dev.db`) |
+| `AUTH_URL` | Публичный URL (production) |
 
-## Синхронизация
+## Ориентир UX
 
-1. Гость работает локально в браузере.
-2. Регистрация / вход переключает UI в облачный режим.
-3. Если в `localStorage` есть записи — предлагается импорт в облако.
-4. На другом устройстве тот же аккаунт видит ту же библиотеку.
-
-## API (авторизованные)
-
-- `GET/POST /api/items`
-- `PATCH/DELETE /api/items/[id]`
-- `POST /api/items/import`
-- `GET /api/items/export`
-- `GET/POST /api/collections`
-- `PATCH/DELETE /api/collections/[id]`
-
-## Структура
-
-```
-prisma/          # схема и миграции
-src/app/api/     # auth + items + collections
-src/auth.ts      # Auth.js
-src/components/  # UI
-src/lib/         # prisma, storage, api client, types
-```
-
-## Postgres позже
-
-Смените `provider` в `prisma/schema.prisma` на `postgresql`, обновите `DATABASE_URL`, выполните миграции — API менять не нужно.
+Функции библиотеки выровнены с PromptCodex (папки, typed variables, variants, explore, usage tracking), плюс облачный sync Cuebox.

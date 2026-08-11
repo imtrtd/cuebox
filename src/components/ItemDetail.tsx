@@ -1,13 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { VariableFillModal } from "@/components/VariableFillModal";
 import { useLibrary } from "@/lib/library-context";
 import { itemPlainText } from "@/lib/storage";
 import {
-  applyPlaceholders,
+  effectiveBody,
   extractPlaceholders,
   KIND_LABELS,
   type LibraryItem,
+  type PromptVariant,
 } from "@/lib/types";
 
 export function ItemDetail({
@@ -19,14 +21,14 @@ export function ItemDetail({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const { collections } = useLibrary();
+  const { collections, recordCopy, toggleArchived, editItem } = useLibrary();
   const [copied, setCopied] = useState(false);
   const [fillOpen, setFillOpen] = useState(false);
-  const [values, setValues] = useState<Record<string, string>>({});
 
+  const body = item ? effectiveBody(item) : "";
   const placeholders = useMemo(
-    () => (item ? extractPlaceholders(item.body) : []),
-    [item],
+    () => (item ? extractPlaceholders(body) : []),
+    [item, body],
   );
 
   const collectionName = item?.collectionId
@@ -38,8 +40,8 @@ export function ItemDetail({
       <div className="detail-empty">
         <p className="detail-empty-brand">Cuebox</p>
         <p>
-          Выберите элемент слева или создайте новый промпт, подсказку, задачу
-          или чат.
+          Выберите элемент слева или откройте{" "}
+          <a href="/explore">Explore</a> — каталог готовых промптов.
         </p>
       </div>
     );
@@ -49,6 +51,7 @@ export function ItemDetail({
     const payload = text ?? itemPlainText(item!);
     try {
       await navigator.clipboard.writeText(payload);
+      await recordCopy(item!.id);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -56,16 +59,35 @@ export function ItemDetail({
     }
   }
 
-  function openFill() {
-    const next: Record<string, string> = {};
-    for (const key of placeholders) {
-      next[key] = values[key] ?? "";
+  async function setActiveVariant(variantId: string | null) {
+    try {
+      await editItem(item!.id, { activeVariantId: variantId });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Ошибка");
     }
-    setValues(next);
-    setFillOpen(true);
   }
 
-  const filled = applyPlaceholders(item.body, values);
+  async function addVariant() {
+    const name = window.prompt("Название варианта", `Вариант ${item!.variants.length + 1}`);
+    if (!name?.trim()) return;
+    const variant: PromptVariant = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `var-${Date.now()}`,
+      name: name.trim(),
+      body: item!.body,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      await editItem(item!.id, {
+        variants: [...item!.variants, variant],
+        activeVariantId: variant.id,
+      });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Ошибка");
+    }
+  }
 
   return (
     <article className="detail-panel">
@@ -77,11 +99,22 @@ export function ItemDetail({
           {collectionName ? (
             <span className="collection-chip">{collectionName}</span>
           ) : null}
+          {item.archived ? <span className="collection-chip">Архив</span> : null}
           <h2>{item.title}</h2>
+          <p className="usage-line">
+            Копирований: <strong>{item.copyCount ?? 0}</strong>
+            {item.lastUsedAt
+              ? ` · последний раз ${new Date(item.lastUsedAt).toLocaleString("ru-RU")}`
+              : ""}
+          </p>
         </div>
         <div className="detail-actions">
-          {placeholders.length > 0 ? (
-            <button type="button" className="btn btn-ghost" onClick={openFill}>
+          {placeholders.length > 0 || item.variableDefs.length > 0 ? (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setFillOpen(true)}
+            >
               Подставить
             </button>
           ) : null}
@@ -95,11 +128,28 @@ export function ItemDetail({
           <button type="button" className="btn btn-ghost" onClick={onEdit}>
             Изменить
           </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => void toggleArchived(item.id)}
+          >
+            {item.archived ? "Из архива" : "В архив"}
+          </button>
           <button type="button" className="btn btn-danger" onClick={onDelete}>
             Удалить
           </button>
         </div>
       </header>
+
+      {item.models.length ? (
+        <div className="tag-row detail-tags">
+          {item.models.map((model) => (
+            <span key={model} className="tag model-tag">
+              {model}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {item.tags.length ? (
         <div className="tag-row detail-tags">
@@ -108,6 +158,37 @@ export function ItemDetail({
               {tag}
             </span>
           ))}
+        </div>
+      ) : null}
+
+      {item.kind === "prompt" || item.kind === "task" || item.kind === "tip" ? (
+        <div className="variants-bar">
+          <button
+            type="button"
+            className={
+              !item.activeVariantId ? "kind-tab active" : "kind-tab"
+            }
+            onClick={() => void setActiveVariant(null)}
+          >
+            Основной
+          </button>
+          {item.variants.map((variant) => (
+            <button
+              key={variant.id}
+              type="button"
+              className={
+                item.activeVariantId === variant.id
+                  ? "kind-tab active"
+                  : "kind-tab"
+              }
+              onClick={() => void setActiveVariant(variant.id)}
+            >
+              {variant.name}
+            </button>
+          ))}
+          <button type="button" className="btn btn-ghost" onClick={() => void addVariant()}>
+            + Вариант
+          </button>
         </div>
       ) : null}
 
@@ -125,61 +206,19 @@ export function ItemDetail({
           ))}
         </div>
       ) : (
-        <pre className="body-block">{item.body}</pre>
+        <pre className="body-block">{body}</pre>
       )}
 
-      {fillOpen ? (
-        <div className="modal-root" role="presentation" onClick={() => setFillOpen(false)}>
-          <div
-            className="modal-panel"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="modal-head">
-              <h2>Подстановка переменных</h2>
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={() => setFillOpen(false)}
-                aria-label="Закрыть"
-              >
-                ×
-              </button>
-            </header>
-            <div className="editor-form">
-              {placeholders.map((key) => (
-                <label key={key} className="field">
-                  <span>{`{{${key}}}`}</span>
-                  <input
-                    value={values[key] ?? ""}
-                    onChange={(e) =>
-                      setValues((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                </label>
-              ))}
-              <pre className="body-block">{filled}</pre>
-              <footer className="modal-foot">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => setFillOpen(false)}
-                >
-                  Закрыть
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => void handleCopy(filled)}
-                >
-                  Копировать результат
-                </button>
-              </footer>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <VariableFillModal
+        key={`${item.id}-${fillOpen}`}
+        item={item}
+        open={fillOpen}
+        onClose={() => setFillOpen(false)}
+        onCopy={(text) => {
+          void handleCopy(text);
+          setFillOpen(false);
+        }}
+      />
     </article>
   );
 }

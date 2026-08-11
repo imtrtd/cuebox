@@ -12,24 +12,41 @@ function createId(): string {
   return `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function normalizeItem(item: LibraryItem): LibraryItem {
+  return {
+    ...item,
+    tags: normalizeTags(item.tags ?? []),
+    favorite: Boolean(item.favorite),
+    archived: Boolean(item.archived),
+    copyCount: item.copyCount ?? 0,
+    lastUsedAt: item.lastUsedAt ?? null,
+    models: item.models ?? [],
+    variableDefs: item.variableDefs ?? [],
+    variants: item.variants ?? [],
+    activeVariantId: item.activeVariantId ?? null,
+    collectionId: item.collectionId ?? null,
+  };
+}
+
 export function loadLibrary(): LibraryItem[] {
   if (typeof window === "undefined") {
-    return SEED_ITEMS;
+    return SEED_ITEMS.map(normalizeItem);
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_ITEMS));
-      return SEED_ITEMS;
+      const seeded = SEED_ITEMS.map(normalizeItem);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
     }
     const parsed = JSON.parse(raw) as LibraryItem[];
     if (!Array.isArray(parsed)) {
-      return SEED_ITEMS;
+      return SEED_ITEMS.map(normalizeItem);
     }
-    return parsed;
+    return parsed.map(normalizeItem);
   } catch {
-    return SEED_ITEMS;
+    return SEED_ITEMS.map(normalizeItem);
   }
 }
 
@@ -40,7 +57,7 @@ export function saveLibrary(items: LibraryItem[]): void {
 
 export function createItem(draft: ItemDraft): LibraryItem {
   const stamp = nowIso();
-  return {
+  return normalizeItem({
     id: createId(),
     kind: draft.kind,
     title: draft.title.trim(),
@@ -48,20 +65,31 @@ export function createItem(draft: ItemDraft): LibraryItem {
     tags: normalizeTags(draft.tags),
     messages: draft.messages,
     favorite: Boolean(draft.favorite),
+    archived: Boolean(draft.archived),
+    copyCount: 0,
+    lastUsedAt: null,
+    models: draft.models ?? [],
+    variableDefs: draft.variableDefs ?? [],
+    variants: draft.variants ?? [],
+    activeVariantId: draft.activeVariantId ?? null,
     collectionId: draft.collectionId ?? null,
     createdAt: stamp,
     updatedAt: stamp,
-  };
+  });
 }
 
 export function updateItem(
   items: LibraryItem[],
   id: string,
-  patch: Partial<ItemDraft> & { favorite?: boolean },
+  patch: Partial<ItemDraft> & {
+    favorite?: boolean;
+    archived?: boolean;
+    incrementCopy?: boolean;
+  },
 ): LibraryItem[] {
   return items.map((item) => {
     if (item.id !== id) return item;
-    return {
+    const next = {
       ...item,
       ...patch,
       title: patch.title !== undefined ? patch.title.trim() : item.title,
@@ -69,6 +97,12 @@ export function updateItem(
       tags: patch.tags !== undefined ? normalizeTags(patch.tags) : item.tags,
       updatedAt: nowIso(),
     };
+    if (patch.incrementCopy) {
+      next.copyCount = (item.copyCount ?? 0) + 1;
+      next.lastUsedAt = nowIso();
+    }
+    delete (next as { incrementCopy?: boolean }).incrementCopy;
+    return normalizeItem(next);
   });
 }
 
@@ -85,11 +119,7 @@ export function importLibraryJson(raw: string): LibraryItem[] {
   if (!Array.isArray(parsed)) {
     throw new Error("Ожидался массив элементов библиотеки");
   }
-  return parsed.map((item) => ({
-    ...item,
-    tags: normalizeTags(item.tags ?? []),
-    favorite: Boolean(item.favorite),
-  }));
+  return parsed.map(normalizeItem);
 }
 
 function normalizeTags(tags: string[]): string[] {
@@ -109,6 +139,10 @@ export function itemPlainText(item: LibraryItem): string {
     return item.messages
       .map((m) => `${m.role.toUpperCase()}:\n${m.content}`)
       .join("\n\n");
+  }
+  if (item.activeVariantId) {
+    const variant = item.variants.find((v) => v.id === item.activeVariantId);
+    if (variant) return variant.body;
   }
   return item.body;
 }

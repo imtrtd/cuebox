@@ -10,8 +10,9 @@ async function parseJson<T>(res: Response): Promise<T> {
   return data;
 }
 
-export async function apiListItems(): Promise<LibraryItem[]> {
-  const res = await fetch("/api/items", { cache: "no-store" });
+export async function apiListItems(includeArchived = true): Promise<LibraryItem[]> {
+  const qs = includeArchived ? "?archived=1" : "";
+  const res = await fetch(`/api/items${qs}`, { cache: "no-store" });
   const data = await parseJson<{ items: LibraryItem[] }>(res);
   return data.items;
 }
@@ -28,7 +29,11 @@ export async function apiCreateItem(draft: ItemDraft): Promise<LibraryItem> {
 
 export async function apiUpdateItem(
   id: string,
-  patch: Partial<ItemDraft> & { favorite?: boolean },
+  patch: Partial<ItemDraft> & {
+    favorite?: boolean;
+    archived?: boolean;
+    incrementCopy?: boolean;
+  },
 ): Promise<LibraryItem> {
   const res = await fetch(`/api/items/${id}`, {
     method: "PATCH",
@@ -68,11 +73,14 @@ export async function apiListCollections(): Promise<Collection[]> {
   return data.collections;
 }
 
-export async function apiCreateCollection(name: string): Promise<Collection> {
+export async function apiCreateCollection(
+  name: string,
+  parentId?: string | null,
+): Promise<Collection> {
   const res = await fetch("/api/collections", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, parentId: parentId ?? null }),
   });
   const data = await parseJson<{ collection: Collection }>(res);
   return data.collection;
