@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthStatus } from "@/components/AuthStatus";
 import { FolderSidebar } from "@/components/FolderSidebar";
@@ -195,81 +202,71 @@ function AppShellInner() {
     }
   }
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.defaultPrevented) return;
-      const meta = e.metaKey || e.ctrlKey;
+  const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    const meta = e.metaKey || e.ctrlKey;
 
-      if (meta && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        document.getElementById("library-search")?.focus();
-        if (view !== "library") setView("library");
-        return;
-      }
-
-      if (isTypingTarget(e.target)) {
-        if (e.key === "Escape") (e.target as HTMLElement).blur();
-        return;
-      }
-
-      if (document.querySelector('[role="dialog"]')) return;
-
-      if (e.key === "/" && !meta) {
-        e.preventDefault();
-        document.getElementById("library-search")?.focus();
-        if (view !== "library") setView("library");
-        return;
-      }
-
-      if (e.key === "n" && !meta) {
-        e.preventDefault();
-        openCreate("prompt");
-        return;
-      }
-
-      if (view !== "library") return;
-
-      if (e.key === "Escape") {
-        setSelectedId(null);
-        return;
-      }
-
-      if (!selected) return;
-
-      if (e.key === "e" && !meta) {
-        e.preventDefault();
-        openEdit();
-        return;
-      }
-      if (e.key === "c" && !meta) {
-        e.preventDefault();
-        void handleCopySelected();
-        return;
-      }
-      if (e.key === "d" && !meta) {
-        e.preventDefault();
-        void handleDuplicate();
-        return;
-      }
-      if (e.key === "f" && !meta) {
-        e.preventDefault();
-        void toggleFavorite(selected.id);
-      }
+    if (meta && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      document.getElementById("library-search")?.focus();
+      if (view !== "library") setView("library");
+      return;
     }
 
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [
-    view,
-    selected,
-    setSelectedId,
-    setView,
-    openCreate,
-    openEdit,
-    handleCopySelected,
-    handleDuplicate,
-    toggleFavorite,
-  ]);
+    if (isTypingTarget(e.target)) {
+      if (e.key === "Escape") (e.target as HTMLElement).blur();
+      return;
+    }
+
+    if (document.querySelector('[role="dialog"]')) return;
+
+    if (e.key === "/" && !meta) {
+      e.preventDefault();
+      document.getElementById("library-search")?.focus();
+      if (view !== "library") setView("library");
+      return;
+    }
+
+    if (e.key === "n" && !meta) {
+      e.preventDefault();
+      openCreate("prompt");
+      return;
+    }
+
+    if (view !== "library") return;
+
+    if (e.key === "Escape") {
+      setSelectedId(null);
+      return;
+    }
+
+    if (!selected) return;
+
+    if (e.key === "e" && !meta) {
+      e.preventDefault();
+      openEdit();
+      return;
+    }
+    if (e.key === "c" && !meta) {
+      e.preventDefault();
+      void handleCopySelected();
+      return;
+    }
+    if (e.key === "d" && !meta) {
+      e.preventDefault();
+      void handleDuplicate();
+      return;
+    }
+    if (e.key === "f" && !meta) {
+      e.preventDefault();
+      void toggleFavorite(selected.id);
+    }
+  });
+
+  useEffect(() => {
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <div className="app-shell">
