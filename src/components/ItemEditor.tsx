@@ -18,24 +18,8 @@ import {
   KIND_LABELS,
   KIND_ORDER,
   VARIABLE_TYPES,
+  AUDIO_PLUGIN_TYPES,
 } from "@/lib/types";
-
-const AUDIO_PLUGIN_TYPES: AudioPluginType[] = [
-  "reverb",
-  "delay",
-  "compressor",
-  "eq",
-  "saturator",
-  "overdrive",
-  "distortion",
-  "chorus",
-  "flanger",
-  "phaser",
-  "filter",
-  "utility",
-  "instrument",
-  "other",
-];
 
 interface ItemEditorProps {
   open: boolean;
