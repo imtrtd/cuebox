@@ -19,6 +19,21 @@ function parseJsonArray<T>(raw: string | null | undefined, fallback: T[] = []): 
   }
 }
 
+function parseJsonObject<T extends object>(
+  raw: string | null | undefined,
+  fallback: T,
+): T {
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw) as T;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function serializeItem(row: DbItem): LibraryItem {
   return {
     id: row.id,
@@ -32,7 +47,7 @@ export function serializeItem(row: DbItem): LibraryItem {
     copyCount: row.copyCount,
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
     models: parseJsonArray<AiModel>(row.models),
-    preset: row.preset ? (JSON.parse(row.preset) as AudioPluginPresetMeta) : undefined,
+    preset: parseJsonObject<AudioPluginPresetMeta>(row.preset, {}),
     variableDefs: parseJsonArray<VariableDef>(row.variableDefs),
     variants: parseJsonArray<PromptVariant>(row.variants),
     activeVariantId: row.activeVariantId,
@@ -81,8 +96,8 @@ export function variantsToJson(variants: PromptVariant[] | undefined): string {
   return JSON.stringify(variants ?? []);
 }
 
-export function presetToJson(preset: AudioPluginPresetMeta | undefined): string | null {
-  if (!preset) return null;
-  if (!Object.values(preset).some(Boolean)) return null;
-  return JSON.stringify(preset);
+export function presetToJson(
+  preset: AudioPluginPresetMeta | undefined,
+): string {
+  return JSON.stringify(preset ?? {});
 }

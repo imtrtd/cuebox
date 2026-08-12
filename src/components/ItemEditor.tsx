@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { folderPath } from "@/lib/collections";
 import { useLibrary } from "@/lib/library-context";
 import type {
   AiModel,
@@ -25,46 +26,32 @@ interface ItemEditorProps {
   open: boolean;
   initial?: LibraryItem | null;
   defaultKind?: ItemKind;
+  defaultCollectionId?: string;
   onClose: () => void;
   onSave: (draft: ItemDraft, id?: string) => void;
-}
-
-function folderLabel(
-  collections: { id: string; name: string; parentId?: string | null }[],
-  id: string,
-): string {
-  const parts: string[] = [];
-  let cursor: string | null | undefined = id;
-  let guard = 0;
-  while (cursor && guard < 6) {
-    const node = collections.find((c) => c.id === cursor);
-    if (!node) break;
-    parts.unshift(node.name);
-    cursor = node.parentId;
-    guard += 1;
-  }
-  return parts.join(" / ");
 }
 
 function ItemEditorForm({
   initial,
   defaultKind,
+  defaultCollectionId,
   onClose,
   onSave,
 }: {
   initial?: LibraryItem | null;
   defaultKind: ItemKind;
+  defaultCollectionId?: string;
   onClose: () => void;
   onSave: (draft: ItemDraft, id?: string) => void;
 }) {
   const titleId = useId();
-  const { collections, mode } = useLibrary();
+  const { collections } = useLibrary();
   const [kind, setKind] = useState<ItemKind>(initial?.kind ?? defaultKind);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
   const [collectionId, setCollectionId] = useState(
-    initial?.collectionId ?? "",
+    initial?.collectionId ?? defaultCollectionId ?? "",
   );
   const [models, setModels] = useState<AiModel[]>(initial?.models ?? []);
   const [plugin, setPlugin] = useState(initial?.preset?.plugin ?? "");
@@ -458,7 +445,7 @@ function ItemEditorForm({
             </div>
           ) : null}
 
-          {mode === "cloud" ? (
+          {collections.length ? (
             <label className="field">
               <span>Папка / коллекция</span>
               <select
@@ -468,7 +455,7 @@ function ItemEditorForm({
                 <option value="">Без коллекции</option>
                 {collections.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {folderLabel(collections, c.id)}
+                    {folderPath(collections, c.id)}
                   </option>
                 ))}
               </select>
@@ -504,16 +491,18 @@ export function ItemEditor({
   open,
   initial,
   defaultKind = "prompt",
+  defaultCollectionId,
   onClose,
   onSave,
 }: ItemEditorProps) {
   if (!open) return null;
-  const formKey = initial?.id ?? `new-${defaultKind}`;
+  const formKey = initial?.id ?? `new-${defaultKind}-${defaultCollectionId ?? ""}`;
   return (
     <ItemEditorForm
       key={formKey}
       initial={initial}
       defaultKind={defaultKind}
+      defaultCollectionId={defaultCollectionId}
       onClose={onClose}
       onSave={onSave}
     />

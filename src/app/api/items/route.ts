@@ -59,10 +59,10 @@ export async function POST(request: Request) {
       archived?: boolean;
       collectionId?: string | null;
       models?: AiModel[];
-      preset?: AudioPluginPresetMeta;
       variableDefs?: VariableDef[];
       variants?: PromptVariant[];
       activeVariantId?: string | null;
+      preset?: AudioPluginPresetMeta;
     };
 
     const kind = body.kind;
@@ -100,10 +100,10 @@ export async function POST(request: Request) {
         archived: Boolean(body.archived),
         collectionId: body.collectionId ?? null,
         models: modelsToJson(body.models),
-        preset: presetToJson(body.preset) ?? null,
         variableDefs: variableDefsToJson(body.variableDefs),
         variants: variantsToJson(body.variants),
         activeVariantId: body.activeVariantId ?? null,
+        preset: presetToJson(body.preset),
       },
     });
 

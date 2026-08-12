@@ -49,10 +49,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       archived?: boolean;
       collectionId?: string | null;
       models?: AiModel[];
-      preset?: AudioPluginPresetMeta;
       variableDefs?: VariableDef[];
       variants?: PromptVariant[];
       activeVariantId?: string | null;
+      preset?: AudioPluginPresetMeta;
       incrementCopy?: boolean;
     };
 
@@ -88,7 +88,6 @@ export async function PATCH(request: Request, context: RouteContext) {
         collectionId:
           body.collectionId !== undefined ? body.collectionId : undefined,
         models: body.models !== undefined ? modelsToJson(body.models) : undefined,
-        preset: body.preset !== undefined ? presetToJson(body.preset) : undefined,
         variableDefs:
           body.variableDefs !== undefined
             ? variableDefsToJson(body.variableDefs)
@@ -97,6 +96,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           body.variants !== undefined ? variantsToJson(body.variants) : undefined,
         activeVariantId:
           body.activeVariantId !== undefined ? body.activeVariantId : undefined,
+        preset: body.preset !== undefined ? presetToJson(body.preset) : undefined,
         ...(body.incrementCopy
           ? {
               copyCount: { increment: 1 },

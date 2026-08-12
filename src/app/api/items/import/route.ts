@@ -38,11 +38,34 @@ export async function POST(request: Request) {
       await prisma.libraryItem.deleteMany({ where: { userId } });
     }
 
+    const incomingCollectionIds = Array.from(
+      new Set(
+        items
+          .map((item) => item.collectionId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const validCollectionIds = new Set(
+      incomingCollectionIds.length
+        ? (
+            await prisma.collection.findMany({
+              where: { userId, id: { in: incomingCollectionIds } },
+              select: { id: true },
+            })
+          ).map((collection) => collection.id)
+        : [],
+    );
+
     const created = [];
     for (const item of items) {
       if (!item.kind || !KIND_SET.has(item.kind)) continue;
       const title = item.title?.trim();
       if (!title) continue;
+
+      const collectionId =
+        item.collectionId && validCollectionIds.has(item.collectionId)
+          ? item.collectionId
+          : null;
 
       const row = await prisma.libraryItem.create({
         data: {
@@ -57,11 +80,11 @@ export async function POST(request: Request) {
           copyCount: item.copyCount ?? 0,
           lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
           models: modelsToJson(item.models),
-          preset: presetToJson(item.preset) ?? null,
           variableDefs: variableDefsToJson(item.variableDefs),
           variants: variantsToJson(item.variants),
           activeVariantId: item.activeVariantId ?? null,
-          collectionId: null,
+          preset: presetToJson(item.preset),
+          collectionId,
           createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
           updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
         },

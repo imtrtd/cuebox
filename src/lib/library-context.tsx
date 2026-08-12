@@ -20,15 +20,26 @@ import {
   apiImportItems,
   apiListCollections,
   apiListItems,
+  apiUpdateCollection,
   apiUpdateItem,
 } from "@/lib/api";
-import { SEED_ITEMS } from "@/lib/seed";
 import {
+  collectionSubtreeIds,
+  knownCollectionId,
+  sortCollectionsByDepth,
+} from "@/lib/collections";
+import { SEED_COLLECTIONS, SEED_ITEMS } from "@/lib/seed";
+import {
+  createCollection as createLocalCollection,
   createItem,
+  deleteCollectionTree,
   deleteItem,
   exportLibraryJson,
   importLibraryJson,
+  loadCollections,
   loadLibrary,
+  renameCollection as renameLocalCollection,
+  saveCollections,
   saveLibrary,
   updateItem,
 } from "@/lib/storage";
@@ -50,12 +61,15 @@ interface LibraryState {
   query: string;
   kindFilter: ItemKind | "all";
   collectionFilter: string | "all" | "none";
+  tagFilter: string | "all";
   favoritesOnly: boolean;
   showArchived: boolean;
   sort: SortMode;
+  allTags: string[];
   setQuery: (value: string) => void;
   setKindFilter: (value: ItemKind | "all") => void;
   setCollectionFilter: (value: string | "all" | "none") => void;
+  setTagFilter: (value: string | "all") => void;
   setFavoritesOnly: (value: boolean) => void;
   setShowArchived: (value: boolean) => void;
   setSort: (value: SortMode) => void;
@@ -69,6 +83,7 @@ interface LibraryState {
     },
   ) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
+  duplicateItem: (id: string) => Promise<LibraryItem | null>;
   toggleFavorite: (id: string) => Promise<void>;
   toggleArchived: (id: string) => Promise<void>;
   recordCopy: (id: string) => Promise<void>;
@@ -81,6 +96,7 @@ interface LibraryState {
     name: string,
     parentId?: string | null,
   ) => Promise<Collection | null>;
+  renameCollection: (id: string, name: string) => Promise<void>;
   removeCollection: (id: string) => Promise<void>;
   filteredItems: LibraryItem[];
   localItemCount: number;
@@ -92,6 +108,7 @@ type UiSnapshot = {
   query: string;
   kindFilter: ItemKind | "all";
   collectionFilter: string | "all" | "none";
+  tagFilter: string | "all";
   favoritesOnly: boolean;
   showArchived: boolean;
   sort: SortMode;
@@ -101,6 +118,7 @@ let uiSnapshot: UiSnapshot = {
   query: "",
   kindFilter: "all",
   collectionFilter: "all",
+  tagFilter: "all",
   favoritesOnly: false,
   showArchived: false,
   sort: "updated",
@@ -131,6 +149,10 @@ function peekLocalCount(): number {
   }
 }
 
+function sortByName(collections: Collection[]): Collection[] {
+  return [...collections].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+}
+
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const authed = Boolean(session?.user?.id);
@@ -144,10 +166,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const ui = useUiState();
 
   useEffect(() => {
-    // Sync localStorage into React state after mount (SSR-safe).
     const local = loadLibrary();
+    const localCollections = loadCollections();
     /* eslint-disable react-hooks/set-state-in-effect -- intentional local hydration */
     setItems(local);
+    setCollections(localCollections);
     setLocalItemCount(local.length);
     setReady(true);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -168,14 +191,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       } else {
         const local = loadLibrary();
         setItems(local);
-        setCollections([]);
+        setCollections(loadCollections());
         setLocalItemCount(local.length);
       }
       setReady(true);
     } catch {
       const local = loadLibrary();
       setItems(local);
-      setCollections([]);
+      setCollections(loadCollections());
       setLocalItemCount(local.length);
       setReady(true);
     } finally {
@@ -192,6 +215,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     if (mode !== "local" || !ready) return;
     saveLibrary(items);
   }, [items, mode, ready]);
+
+  useEffect(() => {
+    if (mode !== "local" || !ready) return;
+    saveCollections(collections);
+  }, [collections, mode, ready]);
 
   const addItem = useCallback(
     async (draft: ItemDraft) => {
@@ -238,6 +266,29 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     [mode],
   );
 
+  const duplicateItem = useCallback(
+    async (id: string) => {
+      const current = items.find((item) => item.id === id);
+      if (!current) return null;
+      return addItem({
+        kind: current.kind,
+        title: `${current.title} (копия)`,
+        body: current.body,
+        tags: current.tags,
+        messages: current.messages,
+        models: current.models,
+        preset: current.preset,
+        variableDefs: current.variableDefs,
+        variants: current.variants,
+        activeVariantId: current.activeVariantId,
+        collectionId: current.collectionId,
+        archived: false,
+        favorite: false,
+      });
+    },
+    [addItem, items],
+  );
+
   const toggleFavorite = useCallback(
     async (id: string) => {
       const current = items.find((item) => item.id === id);
@@ -266,7 +317,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const resetToSeed = useCallback(() => {
     if (mode === "cloud") return;
     setItems(SEED_ITEMS);
+    setCollections(SEED_COLLECTIONS);
     saveLibrary(SEED_ITEMS);
+    saveCollections(SEED_COLLECTIONS);
+    patchUi({
+      collectionFilter: "all",
+      tagFilter: "all",
+      favoritesOnly: false,
+      showArchived: false,
+      query: "",
+    });
   }, [mode]);
 
   const exportJson = useCallback(async () => {
@@ -292,65 +352,135 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const importLocalToCloud = useCallback(async () => {
     if (mode !== "cloud") return 0;
-    const local = loadLibrary();
-    if (!local.length) return 0;
-    const created = await apiImportItems(local, false);
+    const localItems = loadLibrary();
+    const localCollections = loadCollections();
+    if (!localItems.length) return 0;
+
+    const cloudCollections = await apiListCollections();
+    const idMap = new Map<string, string>();
+    for (const local of sortCollectionsByDepth(localCollections)) {
+      const bySlug = local.slug
+        ? cloudCollections.find((c) => c.slug === local.slug)
+        : undefined;
+      if (bySlug) {
+        idMap.set(local.id, bySlug.id);
+        continue;
+      }
+      const parentId = local.parentId
+        ? (idMap.get(local.parentId) ?? null)
+        : null;
+      const created = await apiCreateCollection(local.name, parentId);
+      idMap.set(local.id, created.id);
+      cloudCollections.push(created);
+    }
+
+    const remapped = localItems.map((item) => ({
+      ...item,
+      collectionId: item.collectionId
+        ? (idMap.get(item.collectionId) ?? null)
+        : null,
+    }));
+    const created = await apiImportItems(remapped, false);
     await refresh();
     return created.length;
   }, [mode, refresh]);
 
   const addCollection = useCallback(
     async (name: string, parentId?: string | null) => {
-      if (mode !== "cloud") return null;
-      const collection = await apiCreateCollection(name, parentId);
-      setCollections((prev) =>
-        [...prev, collection].sort((a, b) => a.name.localeCompare(b.name, "ru")),
-      );
+      if (mode === "cloud") {
+        const collection = await apiCreateCollection(name, parentId);
+        setCollections((prev) => sortByName([...prev, collection]));
+        return collection;
+      }
+      const collection = createLocalCollection(collections, name, parentId);
+      setCollections((prev) => sortByName([...prev, collection]));
       return collection;
+    },
+    [collections, mode],
+  );
+
+  const renameCollection = useCallback(
+    async (id: string, name: string) => {
+      if (mode === "cloud") {
+        const updated = await apiUpdateCollection(id, name);
+        setCollections((prev) =>
+          prev.map((row) => (row.id === id ? updated : row)),
+        );
+        return;
+      }
+      setCollections((prev) => renameLocalCollection(prev, id, name));
     },
     [mode],
   );
 
   const removeCollection = useCallback(
     async (id: string) => {
-      if (mode !== "cloud") return;
-      await apiDeleteCollection(id);
-      setCollections((prev) =>
-        prev.filter((c) => c.id !== id && c.parentId !== id),
-      );
+      const removedIds = collectionSubtreeIds(id, collections);
+      if (mode === "cloud") {
+        await apiDeleteCollection(id);
+      } else {
+        setCollections((prev) => deleteCollectionTree(prev, id).collections);
+      }
+      if (mode === "cloud") {
+        setCollections((prev) => prev.filter((c) => !removedIds.has(c.id)));
+      }
       setItems((prev) =>
         prev.map((item) =>
-          item.collectionId === id ? { ...item, collectionId: null } : item,
+          item.collectionId && removedIds.has(item.collectionId)
+            ? { ...item, collectionId: null }
+            : item,
         ),
       );
-      if (ui.collectionFilter === id) {
+      if (
+        ui.collectionFilter !== "all" &&
+        ui.collectionFilter !== "none" &&
+        removedIds.has(ui.collectionFilter)
+      ) {
         patchUi({ collectionFilter: "all" });
       }
     },
-    [mode, ui.collectionFilter],
+    [collections, mode, ui.collectionFilter],
   );
+
+  const allTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      if (item.archived) continue;
+      for (const tag of item.tags) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      }
+    }
+    return [...counts.keys()].sort((a, b) => {
+      const diff = (counts.get(b) ?? 0) - (counts.get(a) ?? 0);
+      return diff !== 0 ? diff : a.localeCompare(b, "ru");
+    });
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     const q = ui.query.trim().toLowerCase();
+    const subtree =
+      ui.collectionFilter !== "all" && ui.collectionFilter !== "none"
+        ? collectionSubtreeIds(ui.collectionFilter, collections)
+        : null;
     const list = items.filter((item) => {
       if (!ui.showArchived && item.archived) return false;
       if (ui.showArchived && !item.archived) return false;
       if (ui.kindFilter !== "all" && item.kind !== ui.kindFilter) return false;
       if (ui.favoritesOnly && !item.favorite) return false;
-      if (ui.collectionFilter === "none" && item.collectionId) return false;
-      if (
-        ui.collectionFilter !== "all" &&
-        ui.collectionFilter !== "none" &&
-        item.collectionId !== ui.collectionFilter
-      ) {
+      if (ui.tagFilter !== "all" && !item.tags.includes(ui.tagFilter)) {
         return false;
       }
+      const folderId = knownCollectionId(collections, item.collectionId);
+      if (ui.collectionFilter === "none" && folderId) return false;
+      if (subtree && (!folderId || !subtree.has(folderId))) return false;
       if (!q) return true;
       const haystack = [
         item.title,
         item.body,
         item.tags.join(" "),
         item.models.join(" "),
+        item.preset?.plugin ?? "",
+        item.preset?.pluginType ?? "",
         ...(item.messages?.map((m) => m.content) ?? []),
       ]
         .join("\n")
@@ -369,7 +499,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       const right = ui.sort === "created" ? b.createdAt : b.updatedAt;
       return right.localeCompare(left);
     });
-  }, [items, ui]);
+  }, [collections, items, ui]);
 
   const value: LibraryState = {
     mode,
@@ -380,18 +510,22 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     query: ui.query,
     kindFilter: ui.kindFilter,
     collectionFilter: ui.collectionFilter,
+    tagFilter: ui.tagFilter,
     favoritesOnly: ui.favoritesOnly,
     showArchived: ui.showArchived,
     sort: ui.sort,
+    allTags,
     setQuery: (query) => patchUi({ query }),
     setKindFilter: (kindFilter) => patchUi({ kindFilter }),
     setCollectionFilter: (collectionFilter) => patchUi({ collectionFilter }),
+    setTagFilter: (tagFilter) => patchUi({ tagFilter }),
     setFavoritesOnly: (favoritesOnly) => patchUi({ favoritesOnly }),
     setShowArchived: (showArchived) => patchUi({ showArchived }),
     setSort: (sort) => patchUi({ sort }),
     addItem,
     editItem,
     removeItem,
+    duplicateItem,
     toggleFavorite,
     toggleArchived,
     recordCopy,
@@ -401,6 +535,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     refresh,
     importLocalToCloud,
     addCollection,
+    renameCollection,
     removeCollection,
     filteredItems,
     localItemCount,

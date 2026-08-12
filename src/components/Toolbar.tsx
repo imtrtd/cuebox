@@ -1,26 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { AiFoldersBar } from "@/components/AiFoldersBar";
 import { useLibrary } from "@/lib/library-context";
 import { KIND_LABELS, KIND_ORDER, type ItemKind } from "@/lib/types";
-
-function folderLabel(
-  collections: { id: string; name: string; parentId?: string | null }[],
-  id: string,
-): string {
-  const parts: string[] = [];
-  let cursor: string | null | undefined = id;
-  let guard = 0;
-  while (cursor && guard < 6) {
-    const node = collections.find((c) => c.id === cursor);
-    if (!node) break;
-    parts.unshift(node.name);
-    cursor = node.parentId;
-    guard += 1;
-  }
-  return parts.join(" / ");
-}
 
 export function Toolbar({
   onCreate,
@@ -34,21 +16,14 @@ export function Toolbar({
     setQuery,
     kindFilter,
     setKindFilter,
-    collectionFilter,
-    setCollectionFilter,
-    favoritesOnly,
-    setFavoritesOnly,
-    showArchived,
-    setShowArchived,
+    tagFilter,
+    setTagFilter,
     sort,
     setSort,
     exportJson,
     filteredItems,
     items,
-    collections,
-    mode,
-    addCollection,
-    removeCollection,
+    allTags,
   } = useLibrary();
 
   async function handleExport() {
@@ -68,27 +43,6 @@ export function Toolbar({
     }
   }
 
-  async function handleAddCollection() {
-    const name = window.prompt("Название папки");
-    if (!name?.trim()) return;
-    const parentId =
-      collectionFilter !== "all" && collectionFilter !== "none"
-        ? collectionFilter
-        : null;
-    try {
-      await addCollection(name.trim(), parentId);
-    } catch (err) {
-      window.alert(
-        err instanceof Error ? err.message : "Не удалось создать папку",
-      );
-    }
-  }
-
-  const activeCollection =
-    collectionFilter !== "all" && collectionFilter !== "none"
-      ? collections.find((c) => c.id === collectionFilter)
-      : null;
-
   return (
     <section className="toolbar" aria-label="Фильтры библиотеки">
       <AiFoldersBar />
@@ -107,6 +61,7 @@ export function Toolbar({
             </svg>
           </span>
           <input
+            id="library-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Поиск по названию, тексту, тегам, моделям…"
@@ -161,84 +116,6 @@ export function Toolbar({
         </div>
 
         <div className="toolbar-side">
-          {mode === "cloud" ? (
-            <label className="sort-field">
-              <span>Папка</span>
-              <select
-                value={collectionFilter}
-                onChange={(e) =>
-                  setCollectionFilter(
-                    e.target.value as string | "all" | "none",
-                  )
-                }
-              >
-                <option value="all">Все</option>
-                <option value="none">Без папки</option>
-                {collections.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {folderLabel(collections, c.id)}
-                    {c.externalUrl ? " ↗" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {mode === "cloud" ? (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => void handleAddCollection()}
-            >
-              + Папка
-            </button>
-          ) : null}
-
-          {activeCollection?.externalUrl ? (
-            <a
-              className="btn btn-ghost"
-              href={activeCollection.externalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Открыть {activeCollection.name}
-            </a>
-          ) : null}
-
-          {mode === "cloud" && activeCollection ? (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => {
-                if (
-                  window.confirm(`Удалить папку «${activeCollection.name}»?`)
-                ) {
-                  void removeCollection(activeCollection.id);
-                }
-              }}
-            >
-              Удалить папку
-            </button>
-          ) : null}
-
-          <label className="check-line">
-            <input
-              type="checkbox"
-              checked={favoritesOnly}
-              onChange={(e) => setFavoritesOnly(e.target.checked)}
-            />
-            Избранное
-          </label>
-
-          <label className="check-line">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-            />
-            Архив
-          </label>
-
           <label className="sort-field">
             <span>Сортировка</span>
             <select
@@ -265,6 +142,33 @@ export function Toolbar({
           </p>
         </div>
       </div>
+
+      {allTags.length ? (
+        <div className="tag-filter" aria-label="Теги">
+          <button
+            type="button"
+            className={tagFilter === "all" ? "tag-chip active" : "tag-chip"}
+            onClick={() => setTagFilter("all")}
+          >
+            Все теги
+          </button>
+          {allTags.slice(0, 12).map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              className={tagFilter === tag ? "tag-chip active" : "tag-chip"}
+              onClick={() => setTagFilter(tagFilter === tag ? "all" : tag)}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="kbd-hint">
+        <kbd>/</kbd> поиск · <kbd>N</kbd> создать · <kbd>C</kbd> копировать ·{" "}
+        <kbd>D</kbd> дублировать · <kbd>E</kbd> изменить · <kbd>F</kbd> избранное
+      </p>
     </section>
   );
 }
