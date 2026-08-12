@@ -1,0 +1,70 @@
+"use client";
+
+import { AI_FOLDER_SEEDS } from "@/lib/ai-folders";
+import { useLibrary } from "@/lib/library-context";
+
+export function AiFoldersBar() {
+  const { collections, collectionFilter, setCollectionFilter, mode } =
+    useLibrary();
+
+  const cloudAiFolders = collections.filter(
+    (c) => c.slug && c.externalUrl && !c.parentId,
+  );
+
+  const folders =
+    mode === "cloud" && cloudAiFolders.length
+      ? cloudAiFolders.map((c) => ({
+          id: c.id,
+          name: c.name,
+          externalUrl: c.externalUrl!,
+          selectable: true as const,
+        }))
+      : AI_FOLDER_SEEDS.map((s) => ({
+          id: s.slug,
+          name: s.name,
+          externalUrl: s.externalUrl,
+          selectable: false as const,
+        }));
+
+  return (
+    <section className="ai-folders" aria-label="Популярные ИИ">
+      <p className="ai-folders-label">ИИ сервисы</p>
+      <ul className="ai-folders-list">
+        {folders.map((folder) => {
+          const active =
+            folder.selectable && collectionFilter === folder.id;
+          return (
+            <li key={folder.id}>
+              <div className={active ? "ai-folder active" : "ai-folder"}>
+                {folder.selectable ? (
+                  <button
+                    type="button"
+                    className="ai-folder-name"
+                    onClick={() =>
+                      setCollectionFilter(active ? "all" : folder.id)
+                    }
+                    title={`Папка ${folder.name}`}
+                  >
+                    {folder.name}
+                  </button>
+                ) : (
+                  <span className="ai-folder-name">{folder.name}</span>
+                )}
+                <a
+                  className="ai-folder-link"
+                  href={folder.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Открыть ${folder.name}`}
+                >
+                  ↗
+                  <span className="sr-only">Открыть {folder.name}</span>
+                </a>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}

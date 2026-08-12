@@ -57,6 +57,8 @@ export interface Collection {
   id: string;
   name: string;
   parentId?: string | null;
+  slug?: string | null;
+  externalUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
