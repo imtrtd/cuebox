@@ -38,6 +38,7 @@ import {
   importLibraryJson,
   loadCollections,
   loadLibrary,
+  mergeLibraryItems,
   renameCollection as renameLocalCollection,
   saveCollections,
   saveLibrary,
@@ -345,7 +346,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         await refresh();
         return;
       }
-      setItems(parsed);
+      setItems((prev) => mergeLibraryItems(prev, parsed));
     },
     [mode, refresh],
   );

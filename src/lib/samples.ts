@@ -4,6 +4,8 @@ export interface SamplePrompt {
   id: string;
   kind: ItemKind;
   title: string;
+  /** Short blurb shown on the catalog card instead of the raw body */
+  description?: string;
   body: string;
   category: string;
   tags: string[];

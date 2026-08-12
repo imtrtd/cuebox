@@ -1,5 +1,6 @@
 import { AI_FOLDER_SEEDS } from "./ai-folders";
 import { collectionSubtreeIds, parentChainLength } from "./collections";
+import { isPromptCodexExport, promptCodexToItems } from "./promptcodex";
 import {
   COLLECTIONS_KEY,
   SEED_COLLECTIONS,
@@ -124,11 +125,27 @@ export function exportLibraryJson(items: LibraryItem[]): string {
 }
 
 export function importLibraryJson(raw: string): LibraryItem[] {
-  const parsed = JSON.parse(raw) as LibraryItem[];
-  if (!Array.isArray(parsed)) {
-    throw new Error("Ожидался массив элементов библиотеки");
+  const parsed: unknown = JSON.parse(raw);
+  if (isPromptCodexExport(parsed)) {
+    return promptCodexToItems(parsed).map(normalizeItem);
   }
-  return parsed.map(normalizeItem);
+  if (!Array.isArray(parsed)) {
+    throw new Error(
+      "Ожидался массив элементов библиотеки или экспорт PromptCodex",
+    );
+  }
+  return (parsed as LibraryItem[]).map(normalizeItem);
+}
+
+/** Incoming items win on id conflict; everything else is kept. */
+export function mergeLibraryItems(
+  current: LibraryItem[],
+  incoming: LibraryItem[],
+): LibraryItem[] {
+  const byId = new Map(incoming.map((item) => [item.id, item]));
+  const merged = current.map((item) => byId.get(item.id) ?? item);
+  const existing = new Set(current.map((item) => item.id));
+  return [...incoming.filter((item) => !existing.has(item.id)), ...merged];
 }
 
 function normalizeTags(tags: string[]): string[] {

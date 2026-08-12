@@ -5,8 +5,12 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AuthStatus } from "@/components/AuthStatus";
 import { SiteNav } from "@/components/SiteNav";
+import {
+  EXPLORE_CATEGORIES,
+  EXPLORE_COUNTS,
+  EXPLORE_PROMPTS,
+} from "@/lib/explore-catalog";
 import { useLibrary } from "@/lib/library-context";
-import { SAMPLE_CATEGORIES, SAMPLE_PROMPTS } from "@/lib/samples";
 import { KIND_LABELS, type ItemDraft } from "@/lib/types";
 
 const CATEGORY_META: Record<
@@ -48,7 +52,39 @@ const CATEGORY_META: Record<
     tone: "tone-clay",
     icon: "✧",
   },
+  Дизайн: {
+    blurb: "Дизайн-системы, токены, критика и UX-исследования.",
+    tone: "tone-teal",
+    icon: "◈",
+  },
+  Соцсети: {
+    blurb: "Посты, форматы платформ и вовлечение.",
+    tone: "tone-blue",
+    icon: "◉",
+  },
+  Бизнес: {
+    blurb: "Стратегия, аудит и оценка возможностей.",
+    tone: "tone-forest",
+    icon: "▲",
+  },
+  Перевод: {
+    blurb: "Локализация и адаптация текста.",
+    tone: "tone-amber",
+    icon: "⇄",
+  },
+  Продуктивность: {
+    blurb: "Рабочие процессы, отчёты и коммуникация.",
+    tone: "tone-ink",
+    icon: "◇",
+  },
+  Другое: {
+    blurb: "Всё, что не попало в другие категории.",
+    tone: "tone-clay",
+    icon: "◌",
+  },
 };
+
+const FALLBACK_META = CATEGORY_META["Другое"];
 
 export function ExplorePage() {
   const { status } = useSession();
@@ -57,29 +93,24 @@ export function ExplorePage() {
   const [query, setQuery] = useState("");
   const [imported, setImported] = useState<Record<string, boolean>>({});
 
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const sample of SAMPLE_PROMPTS) {
-      map.set(sample.category, (map.get(sample.category) ?? 0) + 1);
-    }
-    return map;
-  }, []);
+  const counts = EXPLORE_COUNTS;
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return SAMPLE_PROMPTS.filter((sample) => {
+    return EXPLORE_PROMPTS.filter((sample) => {
       if (category !== "all" && sample.category !== category) return false;
       if (!q) return true;
       return (
         sample.title.toLowerCase().includes(q) ||
         sample.body.toLowerCase().includes(q) ||
+        (sample.description?.toLowerCase().includes(q) ?? false) ||
         sample.tags.some((t) => t.includes(q))
       );
     });
   }, [category, query]);
 
   async function handleImport(sampleId: string) {
-    const sample = SAMPLE_PROMPTS.find((s) => s.id === sampleId);
+    const sample = EXPLORE_PROMPTS.find((s) => s.id === sampleId);
     if (!sample) return;
     const draft: ItemDraft = {
       kind: sample.kind,
@@ -114,16 +145,12 @@ export function ExplorePage() {
     }
   }
 
-  const featured =
-    category === "all"
-      ? CATEGORY_META[SAMPLE_CATEGORIES[0]]
-      : CATEGORY_META[category];
-  const featuredTitle =
-    category === "all" ? "Каталог идей" : category;
+  const featured = CATEGORY_META[category] ?? FALLBACK_META;
+  const featuredTitle = category === "all" ? "Каталог идей" : category;
   const featuredBlurb =
     category === "all"
-      ? "Готовые промпты по категориям — импорт в один клик."
-      : featured?.blurb ?? "";
+      ? `Готовые промпты по категориям (${EXPLORE_PROMPTS.length}) — импорт в один клик.`
+      : featured.blurb;
 
   return (
     <div className="app-shell explore-shell">
@@ -222,7 +249,7 @@ export function ExplorePage() {
           >
             Все
           </button>
-          {SAMPLE_CATEGORIES.map((cat) => (
+          {EXPLORE_CATEGORIES.map((cat) => (
             <button
               key={cat}
               type="button"
@@ -237,8 +264,8 @@ export function ExplorePage() {
 
       {category === "all" ? (
         <div className="category-grid">
-          {SAMPLE_CATEGORIES.map((cat, index) => {
-            const meta = CATEGORY_META[cat];
+          {EXPLORE_CATEGORIES.map((cat, index) => {
+            const meta = CATEGORY_META[cat] ?? FALLBACK_META;
             return (
               <button
                 key={cat}
@@ -275,13 +302,23 @@ export function ExplorePage() {
               <span className="item-date">{sample.category}</span>
             </div>
             <h3>{sample.title}</h3>
-            <p className="item-row-preview">{sample.body}</p>
+            <p className="item-row-preview">
+              {sample.description ?? sample.body}
+            </p>
             <div className="tag-row">
               {sample.models.map((model) => (
                 <span key={model} className="tag model-tag">
                   {model}
                 </span>
               ))}
+              {sample.tags.slice(0, 3).map((tag) => (
+                <span key={tag} className="tag">
+                  {tag}
+                </span>
+              ))}
+              {sample.variableDefs?.length ? (
+                <span className="tag">{sample.variableDefs.length} перем.</span>
+              ) : null}
             </div>
             <footer className="explore-card-foot">
               <button
