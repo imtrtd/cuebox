@@ -314,6 +314,23 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     [mode, ui.collectionFilter],
   );
 
+  const searchableIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    for (const item of items) {
+      const haystack = [
+        item.title,
+        item.body,
+        item.tags.join(" "),
+        item.models.join(" "),
+        ...(item.messages?.map((m) => m.content) ?? []),
+      ]
+        .join("\n")
+        .toLowerCase();
+      index.set(item.id, haystack);
+    }
+    return index;
+  }, [items]);
+
   const filteredItems = useMemo(() => {
     const q = ui.query.trim().toLowerCase();
     const list = items.filter((item) => {
@@ -330,16 +347,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         return false;
       }
       if (!q) return true;
-      const haystack = [
-        item.title,
-        item.body,
-        item.tags.join(" "),
-        item.models.join(" "),
-        ...(item.messages?.map((m) => m.content) ?? []),
-      ]
-        .join("\n")
-        .toLowerCase();
-      return haystack.includes(q);
+      return (searchableIndex.get(item.id) ?? "").includes(q);
     });
 
     return [...list].sort((a, b) => {
@@ -353,7 +361,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       const right = ui.sort === "created" ? b.createdAt : b.updatedAt;
       return right.localeCompare(left);
     });
-  }, [items, ui]);
+  }, [items, searchableIndex, ui]);
 
   const value: LibraryState = {
     mode,
