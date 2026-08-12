@@ -160,6 +160,13 @@ Open:
 | `npm run db:migrate` | Create and apply a development migration |
 | `npm run db:deploy` | Apply existing migrations |
 
+## Deployment
+
+Vercel runs `npm run vercel-build`. Migrations are applied only when
+`VERCEL_ENV` is `production`, so preview deployments never touch the
+production database. Preview builds still need `DATABASE_URL`; only the
+production environment needs `DATABASE_URL_UNPOOLED`.
+
 ## Typical workflow
 
 1. Create or import prompts in local mode.
