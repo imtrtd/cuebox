@@ -259,7 +259,17 @@ function AppShellInner() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [
+    view,
+    selected,
+    setSelectedId,
+    setView,
+    openCreate,
+    openEdit,
+    handleCopySelected,
+    handleDuplicate,
+    toggleFavorite,
+  ]);
 
   return (
     <div className="app-shell">

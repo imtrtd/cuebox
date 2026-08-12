@@ -13,10 +13,11 @@ function nowIso(): string {
 }
 
 export function createId(prefix = "item"): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const uuid =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  return `${prefix}-${uuid}`;
 }
 
 function normalizeItem(item: LibraryItem): LibraryItem {

@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { AiServiceIcon } from "@/components/AiServiceIcon";
 import { AI_FOLDER_SEEDS } from "@/lib/ai-folders";
-import { collectionSubtreeIds } from "@/lib/collections";
 import { useLibrary } from "@/lib/library-context";
 import type { Collection } from "@/lib/types";
 
@@ -46,17 +45,25 @@ export function FolderSidebar() {
   } = useLibrary();
 
   const counts = useMemo(() => {
+    // Build a parent lookup once: O(collections)
+    const parentOf = new Map<string, string | null>(
+      collections.map((c) => [c.id, c.parentId ?? null]),
+    );
+
     const active = items.filter((item) => !item.archived);
     const byFolder = new Map<string, number>();
-    for (const collection of collections) {
-      const subtree = collectionSubtreeIds(collection.id, collections);
-      byFolder.set(
-        collection.id,
-        active.filter(
-          (item) => item.collectionId && subtree.has(item.collectionId),
-        ).length,
-      );
+
+    // For each active item walk its ancestor chain: O(items * depth)
+    for (const item of active) {
+      let cur: string | null | undefined = item.collectionId;
+      let guard = 0;
+      while (cur && parentOf.has(cur) && guard < 8) {
+        byFolder.set(cur, (byFolder.get(cur) ?? 0) + 1);
+        cur = parentOf.get(cur);
+        guard += 1;
+      }
     }
+
     return {
       all: active.length,
       favorites: active.filter((item) => item.favorite).length,
