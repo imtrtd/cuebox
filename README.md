@@ -68,7 +68,7 @@ The Explore page provides sample content that users can import into their own li
 
 ### Audio preset metadata
 
-Cuebox also supports lightweight metadata for effect-oriented prompt workflows in local mode, including:
+Cuebox also supports lightweight metadata for effect-oriented prompt workflows, including:
 
 - plugin name
 - plugin type
@@ -76,7 +76,7 @@ Cuebox also supports lightweight metadata for effect-oriented prompt workflows i
 - BPM
 - key
 
-This is useful for storing structured prompt notes for local reverb, drive, and similar audio processing setups. Note: preset metadata is currently local-only and is not persisted when using cloud mode.
+This is useful for storing structured prompt notes for reverb, drive, and similar audio processing setups. Preset metadata is persisted in both local and cloud mode.
 
 ## Data model
 

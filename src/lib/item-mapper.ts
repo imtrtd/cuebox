@@ -83,7 +83,6 @@ export function variantsToJson(variants: PromptVariant[] | undefined): string {
 
 export function presetToJson(preset: AudioPluginPresetMeta | undefined): string | null {
   if (!preset) return null;
-  const hasData = preset.plugin || preset.source || preset.bpm || preset.key || (preset.pluginType && preset.pluginType !== "other");
-  if (!hasData) return null;
+  if (!Object.values(preset).some(Boolean)) return null;
   return JSON.stringify(preset);
 }
