@@ -541,6 +541,26 @@ textarea {
   box-shadow: var(--shadow-lift);
 }
 
+.skeleton-pulse {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-pulse::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.45) 45%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .stat-card::after {
   content: "";
   position: absolute;

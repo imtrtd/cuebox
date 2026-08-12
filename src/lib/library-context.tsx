@@ -162,6 +162,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         setLocalItemCount(local.length);
       }
       setReady(true);
+    } catch {
+      const local = loadLibrary();
+      setItems(local);
+      setCollections([]);
+      setLocalItemCount(local.length);
+      setReady(true);
     } finally {
       setLoading(false);
     }
@@ -171,6 +177,18 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional remote/local hydration
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (status !== "loading" || ready) return;
+    const timer = window.setTimeout(() => {
+      const local = loadLibrary();
+      setItems(local);
+      setCollections([]);
+      setLocalItemCount(local.length);
+      setReady(true);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [status, ready]);
 
   useEffect(() => {
     if (mode !== "local" || !ready) return;

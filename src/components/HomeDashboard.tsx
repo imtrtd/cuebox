@@ -120,8 +120,16 @@ export function HomeDashboard({
 
   if (!ready) {
     return (
-      <div className="home-dashboard">
-        <p className="list-empty">Загрузка обзора…</p>
+      <div className="home-dashboard" aria-busy="true">
+        <section className="stat-grid" aria-label="Загрузка статистики">
+          <div className="stat-card tone-blue skeleton-pulse" />
+          <div className="stat-card tone-green skeleton-pulse" />
+          <div className="stat-card tone-amber skeleton-pulse" />
+          <div className="stat-card tone-ink skeleton-pulse" />
+        </section>
+        <div className="empty-strip skeleton-pulse">
+          <p>Собираем обзор библиотеки…</p>
+        </div>
       </div>
     );
   }
