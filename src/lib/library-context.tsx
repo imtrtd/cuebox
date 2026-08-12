@@ -145,11 +145,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Sync localStorage into React state after mount (SSR-safe).
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional local hydration
     const local = loadLibrary();
+    /* eslint-disable react-hooks/set-state-in-effect -- intentional local hydration */
     setItems(local);
     setLocalItemCount(local.length);
     setReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const refresh = useCallback(async () => {
