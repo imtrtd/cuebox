@@ -1,7 +1,16 @@
 "use client";
 
+import { AiServiceIcon } from "@/components/AiServiceIcon";
 import { AI_FOLDER_SEEDS } from "@/lib/ai-folders";
 import { useLibrary } from "@/lib/library-context";
+
+function folderSlug(name: string, slug?: string | null): string {
+  if (slug) return slug;
+  const match = AI_FOLDER_SEEDS.find(
+    (s) => s.name.toLowerCase() === name.toLowerCase(),
+  );
+  return match?.slug ?? "other";
+}
 
 export function AiFoldersBar() {
   const { collections, collectionFilter, setCollectionFilter, mode } =
@@ -16,12 +25,14 @@ export function AiFoldersBar() {
       ? cloudAiFolders.map((c) => ({
           id: c.id,
           name: c.name,
+          slug: folderSlug(c.name, c.slug),
           externalUrl: c.externalUrl!,
           selectable: true as const,
         }))
       : AI_FOLDER_SEEDS.map((s) => ({
           id: s.slug,
           name: s.name,
+          slug: s.slug,
           externalUrl: s.externalUrl,
           selectable: false as const,
         }));
@@ -45,10 +56,14 @@ export function AiFoldersBar() {
                     }
                     title={`Папка ${folder.name}`}
                   >
-                    {folder.name}
+                    <AiServiceIcon slug={folder.slug} />
+                    <span>{folder.name}</span>
                   </button>
                 ) : (
-                  <span className="ai-folder-name">{folder.name}</span>
+                  <span className="ai-folder-name">
+                    <AiServiceIcon slug={folder.slug} />
+                    <span>{folder.name}</span>
+                  </span>
                 )}
                 <a
                   className="ai-folder-link"

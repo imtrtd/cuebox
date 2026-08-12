@@ -184,6 +184,9 @@ a {
 }
 
 .ai-folder-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -196,6 +199,18 @@ a {
 
 span.ai-folder-name {
   cursor: default;
+}
+
+.ai-service-icon {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  color: var(--accent, #0f6b5c);
+  opacity: 0.92;
+}
+
+.ai-folder.active .ai-service-icon {
+  opacity: 1;
 }
 
 .ai-folder-link {
