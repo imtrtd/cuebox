@@ -63,7 +63,7 @@ export function ItemList({
                   {item.preset?.plugin ? (
                     <span className="tag">{item.preset.plugin}</span>
                   ) : null}
-                  {item.preset?.pluginType ? (
+                  {item.preset?.pluginType && item.preset.pluginType !== "other" ? (
                     <span className="tag">{item.preset.pluginType}</span>
                   ) : null}
                   {item.archived ? (
