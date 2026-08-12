@@ -45,6 +45,8 @@ export function serializeCollection(row: DbCollection): Collection {
     id: row.id,
     name: row.name,
     parentId: row.parentId ?? null,
+    slug: row.slug ?? null,
+    externalUrl: row.externalUrl ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

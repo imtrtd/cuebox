@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureAiFolders } from "@/lib/ensure-ai-folders";
 import { serializeCollection } from "@/lib/item-mapper";
 import { requireUserId } from "@/lib/session";
 
@@ -8,6 +9,8 @@ export async function GET() {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  await ensureAiFolders(userId);
 
   const rows = await prisma.collection.findMany({
     where: { userId },
@@ -29,6 +32,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       name?: string;
       parentId?: string | null;
+      externalUrl?: string | null;
     };
     const name = body.name?.trim() ?? "";
     if (!name) {
@@ -36,6 +40,25 @@ export async function POST(request: Request) {
         { error: "Укажите название коллекции" },
         { status: 400 },
       );
+    }
+
+    let externalUrl: string | null = null;
+    if (typeof body.externalUrl === "string" && body.externalUrl.trim()) {
+      try {
+        const parsed = new URL(body.externalUrl.trim());
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          return NextResponse.json(
+            { error: "Ссылка должна начинаться с http(s)://" },
+            { status: 400 },
+          );
+        }
+        externalUrl = parsed.toString();
+      } catch {
+        return NextResponse.json(
+          { error: "Некорректная внешняя ссылка" },
+          { status: 400 },
+        );
+      }
     }
 
     if (body.parentId) {
@@ -73,6 +96,7 @@ export async function POST(request: Request) {
         userId,
         name,
         parentId: body.parentId ?? null,
+        externalUrl,
       },
     });
 

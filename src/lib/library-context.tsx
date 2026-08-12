@@ -143,6 +143,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [localItemCount, setLocalItemCount] = useState(0);
   const ui = useUiState();
 
+  useEffect(() => {
+    // Sync localStorage into React state after mount (SSR-safe).
+    const local = loadLibrary();
+    /* eslint-disable react-hooks/set-state-in-effect -- intentional local hydration */
+    setItems(local);
+    setLocalItemCount(local.length);
+    setReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
   const refresh = useCallback(async () => {
     if (status === "loading") return;
     setLoading(true);
@@ -161,6 +171,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         setCollections([]);
         setLocalItemCount(local.length);
       }
+      setReady(true);
+    } catch {
+      const local = loadLibrary();
+      setItems(local);
+      setCollections([]);
+      setLocalItemCount(local.length);
       setReady(true);
     } finally {
       setLoading(false);

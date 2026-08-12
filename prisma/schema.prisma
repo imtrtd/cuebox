@@ -17,19 +17,24 @@ model User {
 }
 
 model Collection {
-  id        String        @id @default(cuid())
-  name      String
-  userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Collection?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children  Collection[]  @relation("FolderTree")
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  items     LibraryItem[]
+  id          String        @id @default(cuid())
+  name        String
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Collection?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Collection[]  @relation("FolderTree")
+  /// Stable id for system-seeded folders (e.g. chatgpt)
+  slug        String?
+  /// Optional outbound link (e.g. ChatGPT web app)
+  externalUrl String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  items       LibraryItem[]
 
   @@index([userId])
   @@index([parentId])
+  @@unique([userId, slug])
 }
 
 model LibraryItem {

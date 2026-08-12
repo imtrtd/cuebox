@@ -12,6 +12,22 @@ export type AiModel =
   | "DeepSeek"
   | "Other";
 
+export type AudioPluginType =
+  | "reverb"
+  | "delay"
+  | "compressor"
+  | "eq"
+  | "saturator"
+  | "overdrive"
+  | "distortion"
+  | "chorus"
+  | "flanger"
+  | "phaser"
+  | "filter"
+  | "utility"
+  | "instrument"
+  | "other";
+
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
@@ -32,6 +48,14 @@ export interface PromptVariant {
   createdAt: string;
 }
 
+export interface AudioPluginPresetMeta {
+  plugin?: string;
+  pluginType?: AudioPluginType;
+  source?: string;
+  bpm?: string;
+  key?: string;
+}
+
 export interface LibraryItem {
   id: string;
   kind: ItemKind;
@@ -45,6 +69,7 @@ export interface LibraryItem {
   copyCount: number;
   lastUsedAt?: string | null;
   models: AiModel[];
+  preset?: AudioPluginPresetMeta;
   variableDefs: VariableDef[];
   variants: PromptVariant[];
   activeVariantId?: string | null;
@@ -57,6 +82,8 @@ export interface Collection {
   id: string;
   name: string;
   parentId?: string | null;
+  slug?: string | null;
+  externalUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }

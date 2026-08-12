@@ -4,6 +4,48 @@ export const STORAGE_KEY = "cuebox.library.v1";
 
 export const SEED_ITEMS: LibraryItem[] = [
   {
+    id: "seed-preset-1",
+    kind: "prompt",
+    title: "Local reverb / drive preset",
+    body: `Set up a local reverb or drive chain.
+
+Source: {{source}}
+Plugin: {{plugin}}
+Effect type: {{effect_type}}
+Goal: {{goal}}
+Tempo: {{tempo}}
+
+Return practical settings, gain staging advice, and one safer alternative if the effect is too aggressive.`,
+    tags: ["audio", "preset", "reverb", "drive"],
+    favorite: true,
+    archived: false,
+    copyCount: 0,
+    models: ["Copilot", "Claude"],
+    preset: {
+      plugin: "Valhalla VintageVerb",
+      pluginType: "reverb",
+      source: "lead vocal",
+      bpm: "124",
+      key: "A minor",
+    },
+    variableDefs: [
+      { key: "source", label: "Source", type: "text", defaultValue: "lead vocal" },
+      { key: "plugin", label: "Plugin", type: "text", defaultValue: "Valhalla VintageVerb" },
+      {
+        key: "effect_type",
+        label: "Effect type",
+        type: "dropdown",
+        options: ["reverb", "overdrive", "distortion"],
+        defaultValue: "reverb",
+      },
+      { key: "goal", label: "Goal", type: "text", defaultValue: "wider but still upfront" },
+      { key: "tempo", label: "Tempo", type: "text", defaultValue: "124 BPM" },
+    ],
+    variants: [],
+    createdAt: "2026-08-05T10:00:00.000Z",
+    updatedAt: "2026-08-05T10:00:00.000Z",
+  },
+  {
     id: "seed-prompt-1",
     kind: "prompt",
     title: "Редактор кода: ревью PR",
