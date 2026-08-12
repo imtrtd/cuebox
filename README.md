@@ -82,7 +82,7 @@ Cuebox also supports lightweight metadata for effect-oriented prompt workflows, 
 - BPM
 - key
 
-This is useful for storing structured prompt notes for local reverb, drive, and similar audio processing setups.
+This is useful for storing structured prompt notes for reverb, drive, and similar audio processing setups. Preset metadata is persisted in both local and cloud mode.
 
 ## Data model
 

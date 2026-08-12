@@ -28,6 +28,24 @@ export type AudioPluginType =
   | "instrument"
   | "other";
 
+export const AUDIO_PLUGIN_TYPES: AudioPluginType[] = [
+  "reverb",
+  "delay",
+  "compressor",
+  "eq",
+  "saturator",
+  "overdrive",
+  "distortion",
+  "chorus",
+  "flanger",
+  "phaser",
+  "filter",
+  "utility",
+  "instrument",
+  "other",
+];
+
+
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
