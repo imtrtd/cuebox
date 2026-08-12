@@ -1,6 +1,7 @@
 import type { LibraryItem as DbItem, Collection as DbCollection } from "@prisma/client";
 import type {
   AiModel,
+  AudioPluginPresetMeta,
   ChatMessage,
   Collection,
   LibraryItem,
@@ -13,6 +14,21 @@ function parseJsonArray<T>(raw: string | null | undefined, fallback: T[] = []): 
   try {
     const parsed = JSON.parse(raw) as T[];
     return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseJsonObject<T extends object>(
+  raw: string | null | undefined,
+  fallback: T,
+): T {
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw) as T;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : fallback;
   } catch {
     return fallback;
   }
@@ -31,6 +47,7 @@ export function serializeItem(row: DbItem): LibraryItem {
     copyCount: row.copyCount,
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
     models: parseJsonArray<AiModel>(row.models),
+    preset: parseJsonObject<AudioPluginPresetMeta>(row.preset, {}),
     variableDefs: parseJsonArray<VariableDef>(row.variableDefs),
     variants: parseJsonArray<PromptVariant>(row.variants),
     activeVariantId: row.activeVariantId,
@@ -77,4 +94,10 @@ export function variableDefsToJson(defs: VariableDef[] | undefined): string {
 
 export function variantsToJson(variants: PromptVariant[] | undefined): string {
   return JSON.stringify(variants ?? []);
+}
+
+export function presetToJson(
+  preset: AudioPluginPresetMeta | undefined,
+): string {
+  return JSON.stringify(preset ?? {});
 }

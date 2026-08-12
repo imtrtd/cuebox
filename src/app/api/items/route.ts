@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import {
   messagesToJson,
   modelsToJson,
+  presetToJson,
   serializeItem,
   tagsToJson,
   variableDefsToJson,
@@ -11,6 +12,7 @@ import {
 import { requireUserId } from "@/lib/session";
 import type {
   AiModel,
+  AudioPluginPresetMeta,
   ChatMessage,
   ItemKind,
   PromptVariant,
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
       variableDefs?: VariableDef[];
       variants?: PromptVariant[];
       activeVariantId?: string | null;
+      preset?: AudioPluginPresetMeta;
     };
 
     const kind = body.kind;
@@ -100,6 +103,7 @@ export async function POST(request: Request) {
         variableDefs: variableDefsToJson(body.variableDefs),
         variants: variantsToJson(body.variants),
         activeVariantId: body.activeVariantId ?? null,
+        preset: presetToJson(body.preset),
       },
     });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLibrary } from "@/lib/library-context";
+import { itemPlainText } from "@/lib/storage";
 import { KIND_LABELS, type LibraryItem } from "@/lib/types";
 
 function formatDate(iso: string) {
@@ -22,7 +23,7 @@ export function ItemList({
   selectedId: string | null;
   onSelect: (item: LibraryItem) => void;
 }) {
-  const { filteredItems, ready, toggleFavorite } = useLibrary();
+  const { filteredItems, ready, toggleFavorite, recordCopy } = useLibrary();
 
   if (!ready) {
     return <div className="list-empty">Загрузка библиотеки…</div>;
@@ -79,27 +80,57 @@ export function ItemList({
                     </span>
                   ))}
                 </div>
-                <span
-                  className={item.favorite ? "fav on" : "fav"}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={
-                    item.favorite ? "Убрать из избранного" : "В избранное"
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(item.id);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+                <div className="row-ops">
+                  <span
+                    className="row-copy"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Копировать"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void (async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            itemPlainText(item),
+                          );
+                          await recordCopy(item.id);
+                        } catch {
+                          /* clipboard may be blocked */
+                        }
+                      })();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.click();
+                      }
+                    }}
+                  >
+                    ⎘
+                  </span>
+                  <span
+                    className={item.favorite ? "fav on" : "fav"}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={
+                      item.favorite ? "Убрать из избранного" : "В избранное"
+                    }
+                    onClick={(e) => {
                       e.stopPropagation();
                       toggleFavorite(item.id);
-                    }
-                  }}
-                >
-                  ★
-                </span>
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavorite(item.id);
+                      }
+                    }}
+                  >
+                    ★
+                  </span>
+                </div>
               </div>
             </button>
           </li>

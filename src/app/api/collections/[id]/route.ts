@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { serializeCollection } from "@/lib/item-mapper";
 import { requireUserId } from "@/lib/session";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -33,12 +34,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   return NextResponse.json({
-    collection: {
-      id: row.id,
-      name: row.name,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-    },
+    collection: serializeCollection(row),
   });
 }
 

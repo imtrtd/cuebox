@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {
@@ -56,6 +57,7 @@ model LibraryItem {
   variableDefs    String      @default("[]")
   variants        String      @default("[]")
   activeVariantId String?
+  preset          String      @default("{}")
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
