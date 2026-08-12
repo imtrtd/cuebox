@@ -137,6 +137,17 @@ export function importLibraryJson(raw: string): LibraryItem[] {
   return (parsed as LibraryItem[]).map(normalizeItem);
 }
 
+/** Incoming items win on id conflict; everything else is kept. */
+export function mergeLibraryItems(
+  current: LibraryItem[],
+  incoming: LibraryItem[],
+): LibraryItem[] {
+  const byId = new Map(incoming.map((item) => [item.id, item]));
+  const merged = current.map((item) => byId.get(item.id) ?? item);
+  const existing = new Set(current.map((item) => item.id));
+  return [...incoming.filter((item) => !existing.has(item.id)), ...merged];
+}
+
 function normalizeTags(tags: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
