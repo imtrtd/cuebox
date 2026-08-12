@@ -14,6 +14,12 @@ Cuebox is a prompt library for individuals and small teams who want a clean plac
 - **Preset metadata** for local audio FX workflows such as reverb and drive
 - **JSON import/export** for backup and migration
 
+## Live
+
+Cuebox is deployed at **[https://cuebox-liart.vercel.app](https://cuebox-liart.vercel.app)**.
+
+Local mode works in the browser without an account. Sign in on the live site to sync a cloud library across devices.
+
 ## Product overview
 
 Cuebox is designed around two usage modes:
@@ -21,7 +27,7 @@ Cuebox is designed around two usage modes:
 | Mode | Storage | Best for |
 | --- | --- | --- |
 | Local | `localStorage` in the current browser | Fast personal use, demos, offline-style capture |
-| Cloud | SQLite via Prisma + authenticated account | Sync across devices, collections, persistent account data |
+| Cloud | PostgreSQL via Prisma + authenticated account | Sync across devices, collections, persistent account data |
 
 The main library experience includes:
 
@@ -35,7 +41,7 @@ The main library experience includes:
 - **Framework:** Next.js 16 App Router
 - **UI:** React 19 + TypeScript
 - **Auth:** Auth.js credentials flow
-- **Database:** Prisma + SQLite
+- **Database:** Prisma + PostgreSQL (Neon in production, Docker locally)
 - **Styling:** Tailwind CSS v4
 
 ## Core capabilities
@@ -96,6 +102,7 @@ The app stores three primary entities in cloud mode:
 
 - Node.js 20+
 - npm
+- PostgreSQL 16+ (or Docker for the bundled Compose file)
 
 ### Installation
 
@@ -111,12 +118,16 @@ Set the following variables in `.env`:
 | Variable | Description |
 | --- | --- |
 | `AUTH_SECRET` | Secret used by Auth.js |
-| `DATABASE_URL` | Prisma database URL, for example `file:./dev.db` |
+| `DATABASE_URL` | Pooled Postgres URL |
+| `DATABASE_URL_UNPOOLED` | Direct Postgres URL (migrations). Same as `DATABASE_URL` for local Docker |
 | `AUTH_URL` | Public application URL for production deployments |
 
 ### Prepare the database
 
+Local Postgres with Docker:
+
 ```bash
+docker compose up -d
 npx prisma migrate deploy
 ```
 
@@ -148,6 +159,13 @@ Open:
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:migrate` | Create and apply a development migration |
 | `npm run db:deploy` | Apply existing migrations |
+
+## Deployment
+
+Vercel runs `npm run vercel-build`. Migrations are applied only when
+`VERCEL_ENV` is `production`, so preview deployments never touch the
+production database. Preview builds still need `DATABASE_URL`; only the
+production environment needs `DATABASE_URL_UNPOOLED`.
 
 ## Typical workflow
 

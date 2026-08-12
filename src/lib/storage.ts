@@ -213,17 +213,21 @@ export function loadCollections(): Collection[] {
       window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(seeded));
       return seeded;
     }
-    const parsed = JSON.parse(raw) as Collection[];
+    const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) {
-      return SEED_COLLECTIONS.map(normalizeCollection);
+      const seeded = SEED_COLLECTIONS.map(normalizeCollection);
+      window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(seeded));
+      return seeded;
     }
-    const next = ensureLocalAiFolders(parsed);
-    if (next.length !== parsed.length) {
+    const next = ensureLocalAiFolders(parsed as Collection[]);
+    if (next.length !== (parsed as Collection[]).length) {
       window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(next));
     }
     return next;
   } catch {
-    return SEED_COLLECTIONS.map(normalizeCollection);
+    const seeded = SEED_COLLECTIONS.map(normalizeCollection);
+    window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(seeded));
+    return seeded;
   }
 }
 
