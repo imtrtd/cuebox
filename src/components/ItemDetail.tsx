@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { VariableFillModal } from "@/components/VariableFillModal";
+import { folderPath } from "@/lib/collections";
 import { useLibrary } from "@/lib/library-context";
 import { itemPlainText } from "@/lib/storage";
 import {
@@ -16,12 +17,23 @@ export function ItemDetail({
   item,
   onEdit,
   onDelete,
+  onDuplicate,
 }: {
   item: LibraryItem | null;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
-  const { collections, recordCopy, toggleArchived, editItem } = useLibrary();
+  const {
+    collections,
+    recordCopy,
+    toggleArchived,
+    editItem,
+    setTagFilter,
+    setCollectionFilter,
+    setFavoritesOnly,
+    setShowArchived,
+  } = useLibrary();
   const [copied, setCopied] = useState(false);
   const [fillOpen, setFillOpen] = useState(false);
 
@@ -32,7 +44,7 @@ export function ItemDetail({
   );
 
   const collectionName = item?.collectionId
-    ? collections.find((c) => c.id === item.collectionId)?.name
+    ? folderPath(collections, item.collectionId)
     : null;
 
   if (!item) {
@@ -97,7 +109,18 @@ export function ItemDetail({
             {KIND_LABELS[item.kind]}
           </span>
           {collectionName ? (
-            <span className="collection-chip">{collectionName}</span>
+            <button
+              type="button"
+              className="collection-chip"
+              onClick={() => {
+                if (!item.collectionId) return;
+                setCollectionFilter(item.collectionId);
+                setFavoritesOnly(false);
+                setShowArchived(false);
+              }}
+            >
+              {collectionName}
+            </button>
           ) : null}
           {item.archived ? <span className="collection-chip">Архив</span> : null}
           <h2>{item.title}</h2>
@@ -124,6 +147,9 @@ export function ItemDetail({
             onClick={() => void handleCopy()}
           >
             {copied ? "Скопировано" : "Копировать"}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onDuplicate}>
+            Дублировать
           </button>
           <button type="button" className="btn btn-ghost" onClick={onEdit}>
             Изменить
@@ -154,11 +180,53 @@ export function ItemDetail({
       {item.tags.length ? (
         <div className="tag-row detail-tags">
           {item.tags.map((tag) => (
-            <span key={tag} className="tag">
+            <button
+              key={tag}
+              type="button"
+              className="tag tag-button"
+              onClick={() => {
+                setTagFilter(tag);
+                setFavoritesOnly(false);
+                setShowArchived(false);
+              }}
+            >
               {tag}
-            </span>
+            </button>
           ))}
         </div>
+      ) : null}
+
+      {item.preset?.plugin ||
+      item.preset?.pluginType ||
+      item.preset?.source ? (
+        <div className="preset-meta">
+          {item.preset.plugin ? <span>{item.preset.plugin}</span> : null}
+          {item.preset.pluginType ? <span>{item.preset.pluginType}</span> : null}
+          {item.preset.source ? <span>{item.preset.source}</span> : null}
+          {item.preset.bpm ? <span>{item.preset.bpm} BPM</span> : null}
+          {item.preset.key ? <span>{item.preset.key}</span> : null}
+        </div>
+      ) : null}
+
+      {collections.length ? (
+        <label className="move-field">
+          <span>Папка</span>
+          <select
+            value={item.collectionId ?? ""}
+            onChange={(e) => {
+              void editItem(item.id, {
+                collectionId: e.target.value || null,
+              });
+            }}
+          >
+            <option value="">Без папки</option>
+            {collections.map((c) => (
+              <option key={c.id} value={c.id}>
+                {folderPath(collections, c.id)}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
 
       {item.kind === "prompt" || item.kind === "task" || item.kind === "tip" ? (

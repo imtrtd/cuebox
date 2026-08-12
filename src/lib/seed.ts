@@ -1,6 +1,30 @@
-import type { LibraryItem } from "./types";
+import { AI_FOLDER_SEEDS } from "./ai-folders";
+import type { Collection, LibraryItem } from "./types";
 
 export const STORAGE_KEY = "cuebox.library.v1";
+export const COLLECTIONS_KEY = "cuebox.collections.v1";
+
+const SEED_STAMP = "2026-08-05T09:00:00.000Z";
+
+export const SEED_COLLECTIONS: Collection[] = [
+  {
+    id: "local-folder-presets",
+    name: "Presets",
+    slug: "presets",
+    parentId: null,
+    createdAt: SEED_STAMP,
+    updatedAt: SEED_STAMP,
+  },
+  ...AI_FOLDER_SEEDS.map((seed) => ({
+    id: `local-folder-${seed.slug}`,
+    name: seed.name,
+    slug: seed.slug,
+    externalUrl: seed.externalUrl,
+    parentId: null,
+    createdAt: SEED_STAMP,
+    updatedAt: SEED_STAMP,
+  })),
+];
 
 export const SEED_ITEMS: LibraryItem[] = [
   {
@@ -42,6 +66,7 @@ Return practical settings, gain staging advice, and one safer alternative if the
       { key: "tempo", label: "Tempo", type: "text", defaultValue: "124 BPM" },
     ],
     variants: [],
+    collectionId: "local-folder-presets",
     createdAt: "2026-08-05T10:00:00.000Z",
     updatedAt: "2026-08-05T10:00:00.000Z",
   },
@@ -70,6 +95,7 @@ Return practical settings, gain staging advice, and one safer alternative if the
       { key: "goal", label: "Цель", type: "text" },
     ],
     variants: [],
+    collectionId: "local-folder-chatgpt",
     createdAt: "2026-08-01T10:00:00.000Z",
     updatedAt: "2026-08-01T10:00:00.000Z",
   },
@@ -107,6 +133,7 @@ Return practical settings, gain staging advice, and one safer alternative if the
     models: ["ChatGPT", "Claude"],
     variableDefs: [],
     variants: [],
+    collectionId: "local-folder-claude",
     createdAt: "2026-08-03T09:30:00.000Z",
     updatedAt: "2026-08-03T09:30:00.000Z",
   },
@@ -143,6 +170,7 @@ Return practical settings, gain staging advice, and one safer alternative if the
           "Cuebox — личная библиотека промптов, задач и чатов с ИИ.",
       },
     ],
+    collectionId: "local-folder-chatgpt",
     createdAt: "2026-08-04T15:00:00.000Z",
     updatedAt: "2026-08-04T15:20:00.000Z",
   },

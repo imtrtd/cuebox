@@ -13,7 +13,7 @@ function folderSlug(name: string, slug?: string | null): string {
 }
 
 export function AiFoldersBar() {
-  const { collections, collectionFilter, setCollectionFilter, mode } =
+  const { collections, collectionFilter, setCollectionFilter } =
     useLibrary();
 
   const cloudAiFolders = collections.filter(
@@ -21,7 +21,7 @@ export function AiFoldersBar() {
   );
 
   const folders =
-    mode === "cloud" && cloudAiFolders.length
+    cloudAiFolders.length
       ? cloudAiFolders.map((c) => ({
           id: c.id,
           name: c.name,

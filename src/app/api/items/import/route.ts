@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import {
   messagesToJson,
   modelsToJson,
+  presetToJson,
   serializeItem,
   tagsToJson,
   variableDefsToJson,
@@ -43,6 +44,15 @@ export async function POST(request: Request) {
       const title = item.title?.trim();
       if (!title) continue;
 
+      let collectionId: string | null = null;
+      if (item.collectionId) {
+        const collection = await prisma.collection.findFirst({
+          where: { id: item.collectionId, userId },
+          select: { id: true },
+        });
+        if (collection) collectionId = collection.id;
+      }
+
       const row = await prisma.libraryItem.create({
         data: {
           userId,
@@ -59,7 +69,8 @@ export async function POST(request: Request) {
           variableDefs: variableDefsToJson(item.variableDefs),
           variants: variantsToJson(item.variants),
           activeVariantId: item.activeVariantId ?? null,
-          collectionId: null,
+          preset: presetToJson(item.preset),
+          collectionId,
           createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
           updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
         },

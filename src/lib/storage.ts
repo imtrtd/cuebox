@@ -1,15 +1,22 @@
-import { SEED_ITEMS, STORAGE_KEY } from "./seed";
-import type { ItemDraft, LibraryItem } from "./types";
+import { AI_FOLDER_SEEDS } from "./ai-folders";
+import { collectionSubtreeIds, parentChainLength } from "./collections";
+import {
+  COLLECTIONS_KEY,
+  SEED_COLLECTIONS,
+  SEED_ITEMS,
+  STORAGE_KEY,
+} from "./seed";
+import type { Collection, ItemDraft, LibraryItem } from "./types";
 
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-function createId(): string {
+export function createId(prefix = "item"): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
-  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function normalizeItem(item: LibraryItem): LibraryItem {
@@ -147,4 +154,125 @@ export function itemPlainText(item: LibraryItem): string {
     if (variant) return variant.body;
   }
   return item.body;
+}
+
+function normalizeCollection(collection: Collection): Collection {
+  return {
+    ...collection,
+    parentId: collection.parentId ?? null,
+    slug: collection.slug ?? null,
+    externalUrl: collection.externalUrl ?? null,
+  };
+}
+
+function ensureLocalAiFolders(collections: Collection[]): Collection[] {
+  const have = new Set(
+    collections.map((c) => c.slug).filter((slug): slug is string => Boolean(slug)),
+  );
+  const missing = AI_FOLDER_SEEDS.filter((seed) => !have.has(seed.slug));
+  if (!missing.length) return collections.map(normalizeCollection);
+  const stamp = nowIso();
+  return [
+    ...collections.map(normalizeCollection),
+    ...missing.map((seed) =>
+      normalizeCollection({
+        id: `local-folder-${seed.slug}`,
+        name: seed.name,
+        slug: seed.slug,
+        externalUrl: seed.externalUrl,
+        parentId: null,
+        createdAt: stamp,
+        updatedAt: stamp,
+      }),
+    ),
+  ];
+}
+
+export function loadCollections(): Collection[] {
+  if (typeof window === "undefined") {
+    return SEED_COLLECTIONS.map(normalizeCollection);
+  }
+
+  try {
+    const raw = window.localStorage.getItem(COLLECTIONS_KEY);
+    if (!raw) {
+      const seeded = SEED_COLLECTIONS.map(normalizeCollection);
+      window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(seeded));
+      return seeded;
+    }
+    const parsed = JSON.parse(raw) as Collection[];
+    if (!Array.isArray(parsed)) {
+      return SEED_COLLECTIONS.map(normalizeCollection);
+    }
+    const next = ensureLocalAiFolders(parsed);
+    if (next.length !== parsed.length) {
+      window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(next));
+    }
+    return next;
+  } catch {
+    return SEED_COLLECTIONS.map(normalizeCollection);
+  }
+}
+
+export function saveCollections(collections: Collection[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections));
+}
+
+export function createCollection(
+  collections: Collection[],
+  name: string,
+  parentId?: string | null,
+): Collection {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Укажите название папки");
+  }
+  if (parentId) {
+    const parent = collections.find((c) => c.id === parentId);
+    if (!parent) {
+      throw new Error("Родительская папка не найдена");
+    }
+    if (parentChainLength(collections, parentId) >= 5) {
+      throw new Error("Максимум 5 уровней вложенности папок");
+    }
+  }
+  const stamp = nowIso();
+  return normalizeCollection({
+    id: createId("folder"),
+    name: trimmed,
+    parentId: parentId ?? null,
+    slug: null,
+    externalUrl: null,
+    createdAt: stamp,
+    updatedAt: stamp,
+  });
+}
+
+export function renameCollection(
+  collections: Collection[],
+  id: string,
+  name: string,
+): Collection[] {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Укажите название папки");
+  }
+  const stamp = nowIso();
+  return collections.map((collection) =>
+    collection.id === id
+      ? { ...collection, name: trimmed, updatedAt: stamp }
+      : collection,
+  );
+}
+
+export function deleteCollectionTree(
+  collections: Collection[],
+  id: string,
+): { collections: Collection[]; removedIds: Set<string> } {
+  const removedIds = collectionSubtreeIds(id, collections);
+  return {
+    collections: collections.filter((c) => !removedIds.has(c.id)),
+    removedIds,
+  };
 }

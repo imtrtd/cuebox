@@ -86,6 +86,19 @@ export async function apiCreateCollection(
   return data.collection;
 }
 
+export async function apiUpdateCollection(
+  id: string,
+  name: string,
+): Promise<Collection> {
+  const res = await fetch(`/api/collections/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  const data = await parseJson<{ collection: Collection }>(res);
+  return data.collection;
+}
+
 export async function apiDeleteCollection(id: string): Promise<void> {
   const res = await fetch(`/api/collections/${id}`, { method: "DELETE" });
   await parseJson<{ ok: boolean }>(res);

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthStatus } from "@/components/AuthStatus";
+import { FolderSidebar } from "@/components/FolderSidebar";
 import { HomeDashboard } from "@/components/HomeDashboard";
 import { ItemDetail } from "@/components/ItemDetail";
 import { ItemEditor } from "@/components/ItemEditor";
@@ -10,7 +11,15 @@ import { ItemList } from "@/components/ItemList";
 import { SiteNav, type AppView } from "@/components/SiteNav";
 import { Toolbar } from "@/components/Toolbar";
 import { useLibrary } from "@/lib/library-context";
+import { itemPlainText } from "@/lib/storage";
 import type { ItemDraft, ItemKind, LibraryItem } from "@/lib/types";
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
 
 function AppShellInner() {
   const router = useRouter();
@@ -20,12 +29,16 @@ function AppShellInner() {
     ready,
     mode,
     localItemCount,
+    collectionFilter,
     addItem,
     editItem,
     removeItem,
+    duplicateItem,
     importJson,
     resetToSeed,
     importLocalToCloud,
+    recordCopy,
+    toggleFavorite,
   } = useLibrary();
 
   const view: AppView =
@@ -49,6 +62,11 @@ function AppShellInner() {
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   );
+
+  const defaultCollectionId =
+    collectionFilter !== "all" && collectionFilter !== "none"
+      ? collectionFilter
+      : "";
 
   useEffect(() => {
     if (
@@ -121,6 +139,28 @@ function AppShellInner() {
     }
   }
 
+  async function handleDuplicate() {
+    if (!selected) return;
+    try {
+      const copy = await duplicateItem(selected.id);
+      if (copy) setSelectedId(copy.id);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Не удалось дублировать",
+      );
+    }
+  }
+
+  async function handleCopySelected() {
+    if (!selected) return;
+    try {
+      await navigator.clipboard.writeText(itemPlainText(selected));
+      await recordCopy(selected.id);
+    } catch {
+      window.alert("Не удалось скопировать");
+    }
+  }
+
   function handleImportFile(file: File) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -154,6 +194,72 @@ function AppShellInner() {
       window.alert(err instanceof Error ? err.message : "Импорт не удался");
     }
   }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.defaultPrevented) return;
+      const meta = e.metaKey || e.ctrlKey;
+
+      if (meta && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        document.getElementById("library-search")?.focus();
+        if (view !== "library") setView("library");
+        return;
+      }
+
+      if (isTypingTarget(e.target)) {
+        if (e.key === "Escape") (e.target as HTMLElement).blur();
+        return;
+      }
+
+      if (document.querySelector('[role="dialog"]')) return;
+
+      if (e.key === "/" && !meta) {
+        e.preventDefault();
+        document.getElementById("library-search")?.focus();
+        if (view !== "library") setView("library");
+        return;
+      }
+
+      if (e.key === "n" && !meta) {
+        e.preventDefault();
+        openCreate("prompt");
+        return;
+      }
+
+      if (view !== "library") return;
+
+      if (e.key === "Escape") {
+        setSelectedId(null);
+        return;
+      }
+
+      if (!selected) return;
+
+      if (e.key === "e" && !meta) {
+        e.preventDefault();
+        openEdit();
+        return;
+      }
+      if (e.key === "c" && !meta) {
+        e.preventDefault();
+        void handleCopySelected();
+        return;
+      }
+      if (e.key === "d" && !meta) {
+        e.preventDefault();
+        void handleDuplicate();
+        return;
+      }
+      if (e.key === "f" && !meta) {
+        e.preventDefault();
+        void toggleFavorite(selected.id);
+      }
+    }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <div className="app-shell">
@@ -282,6 +388,7 @@ function AppShellInner() {
           />
 
           <div className="workspace">
+            <FolderSidebar />
             <aside className="sidebar">
               <div className="pane-label">Библиотека</div>
               <ItemList
@@ -294,6 +401,7 @@ function AppShellInner() {
                 item={selected}
                 onEdit={openEdit}
                 onDelete={() => void handleDelete()}
+                onDuplicate={() => void handleDuplicate()}
               />
             </main>
           </div>
@@ -304,6 +412,7 @@ function AppShellInner() {
         open={editorVisible}
         initial={createFromUrl ? null : editing}
         defaultKind={defaultKind}
+        defaultCollectionId={defaultCollectionId}
         onClose={closeEditor}
         onSave={(draft, id) => void handleSave(draft, id)}
       />

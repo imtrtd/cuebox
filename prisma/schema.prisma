@@ -56,6 +56,7 @@ model LibraryItem {
   variableDefs    String      @default("[]")
   variants        String      @default("[]")
   activeVariantId String?
+  preset          String      @default("{}")
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 

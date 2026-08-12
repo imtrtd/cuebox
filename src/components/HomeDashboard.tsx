@@ -38,8 +38,16 @@ export function HomeDashboard({
   onOpenLibrary: () => void;
   onCreate: () => void;
 }) {
-  const { items, ready, setFavoritesOnly, setKindFilter, setQuery } =
-    useLibrary();
+  const {
+    items,
+    ready,
+    collections,
+    setFavoritesOnly,
+    setKindFilter,
+    setQuery,
+    setCollectionFilter,
+    setShowArchived,
+  } = useLibrary();
 
   const stats = useMemo(() => {
     const active = items.filter((i) => !i.archived);
@@ -194,9 +202,21 @@ export function HomeDashboard({
                 className={`service-tile service-${service.model.toLowerCase()}`}
                 style={{ animationDelay: `${0.05 * index}s` }}
                 onClick={() => {
-                  setQuery(service.model);
+                  const match = collections.find(
+                    (c) =>
+                      c.name === service.model ||
+                      c.slug === service.model.toLowerCase(),
+                  );
                   setKindFilter("all");
                   setFavoritesOnly(false);
+                  setShowArchived(false);
+                  if (match) {
+                    setCollectionFilter(match.id);
+                    setQuery("");
+                  } else {
+                    setCollectionFilter("all");
+                    setQuery(service.model);
+                  }
                   onOpenLibrary();
                 }}
               >
