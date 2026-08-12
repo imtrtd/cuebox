@@ -136,11 +136,17 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const authed = Boolean(session?.user?.id);
   const mode: "local" | "cloud" = authed ? "cloud" : "local";
 
-  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [items, setItems] = useState<LibraryItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    return loadLibrary();
+  });
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => typeof window !== "undefined");
   const [loading, setLoading] = useState(false);
-  const [localItemCount, setLocalItemCount] = useState(0);
+  const [localItemCount, setLocalItemCount] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    return peekLocalCount();
+  });
   const ui = useUiState();
 
   const refresh = useCallback(async () => {
