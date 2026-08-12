@@ -17,12 +17,14 @@ export function SiteNav({
         <Link
           href="/"
           className={active === "home" ? "nav-tab active" : "nav-tab"}
+          prefetch
         >
           Home
         </Link>
         <Link
           href="/?view=library"
           className={active === "library" ? "nav-tab active" : "nav-tab"}
+          prefetch
         >
           Library
         </Link>
@@ -31,13 +33,14 @@ export function SiteNav({
             Create
           </button>
         ) : (
-          <Link href="/?view=library&create=1" className="nav-tab">
+          <Link href="/?view=library&create=1" className="nav-tab" prefetch>
             Create
           </Link>
         )}
         <Link
           href="/explore"
           className={active === "explore" ? "nav-tab active" : "nav-tab"}
+          prefetch
         >
           Explore
         </Link>

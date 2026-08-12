@@ -136,18 +136,21 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const authed = Boolean(session?.user?.id);
   const mode: "local" | "cloud" = authed ? "cloud" : "local";
 
-  const [items, setItems] = useState<LibraryItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    return loadLibrary();
-  });
+  const [items, setItems] = useState<LibraryItem[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [ready, setReady] = useState(() => typeof window !== "undefined");
+  const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [localItemCount, setLocalItemCount] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    return peekLocalCount();
-  });
+  const [localItemCount, setLocalItemCount] = useState(0);
   const ui = useUiState();
+
+  useEffect(() => {
+    // Sync localStorage into React state after mount (SSR-safe).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional local hydration
+    const local = loadLibrary();
+    setItems(local);
+    setLocalItemCount(local.length);
+    setReady(true);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (status === "loading") return;
@@ -183,18 +186,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional remote/local hydration
     void refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    if (status !== "loading" || ready) return;
-    const timer = window.setTimeout(() => {
-      const local = loadLibrary();
-      setItems(local);
-      setCollections([]);
-      setLocalItemCount(local.length);
-      setReady(true);
-    }, 2500);
-    return () => window.clearTimeout(timer);
-  }, [status, ready]);
 
   useEffect(() => {
     if (mode !== "local" || !ready) return;
