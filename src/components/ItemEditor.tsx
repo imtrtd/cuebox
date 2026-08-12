@@ -4,6 +4,7 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { useLibrary } from "@/lib/library-context";
 import type {
   AiModel,
+  AudioPluginType,
   ChatMessage,
   ItemDraft,
   ItemKind,
@@ -18,6 +19,23 @@ import {
   KIND_ORDER,
   VARIABLE_TYPES,
 } from "@/lib/types";
+
+const AUDIO_PLUGIN_TYPES: AudioPluginType[] = [
+  "reverb",
+  "delay",
+  "compressor",
+  "eq",
+  "saturator",
+  "overdrive",
+  "distortion",
+  "chorus",
+  "flanger",
+  "phaser",
+  "filter",
+  "utility",
+  "instrument",
+  "other",
+];
 
 interface ItemEditorProps {
   open: boolean;
@@ -65,6 +83,13 @@ function ItemEditorForm({
     initial?.collectionId ?? "",
   );
   const [models, setModels] = useState<AiModel[]>(initial?.models ?? []);
+  const [plugin, setPlugin] = useState(initial?.preset?.plugin ?? "");
+  const [pluginType, setPluginType] = useState<AudioPluginType>(
+    initial?.preset?.pluginType ?? "other",
+  );
+  const [source, setSource] = useState(initial?.preset?.source ?? "");
+  const [bpm, setBpm] = useState(initial?.preset?.bpm ?? "");
+  const [musicalKey, setMusicalKey] = useState(initial?.preset?.key ?? "");
   const [variableDefs, setVariableDefs] = useState<VariableDef[]>(
     initial?.variableDefs?.length
       ? initial.variableDefs
@@ -132,6 +157,16 @@ function ItemEditorForm({
       favorite: initial?.favorite,
       archived: initial?.archived ?? false,
       models,
+      preset:
+        plugin || source || bpm || musicalKey || pluginType !== "other"
+          ? {
+              plugin: plugin.trim() || undefined,
+              pluginType,
+              source: source.trim() || undefined,
+              bpm: bpm.trim() || undefined,
+              key: musicalKey.trim() || undefined,
+            }
+          : {},
       variableDefs,
       variants: initial?.variants ?? [],
       activeVariantId: initial?.activeVariantId ?? null,
@@ -271,6 +306,46 @@ function ItemEditorForm({
                   {model}
                 </label>
               ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="kind-picker">
+            <legend>Preset / plugin metadata</legend>
+            <div className="vars-editor">
+              <div className="var-row">
+                <input
+                  value={plugin}
+                  placeholder="Plugin, e.g. Valhalla VintageVerb"
+                  onChange={(e) => setPlugin(e.target.value)}
+                />
+                <select
+                  value={pluginType}
+                  onChange={(e) => setPluginType(e.target.value as AudioPluginType)}
+                >
+                  {AUDIO_PLUGIN_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="var-row">
+                <input
+                  value={source}
+                  placeholder="Source, e.g. lead vocal / drum bus"
+                  onChange={(e) => setSource(e.target.value)}
+                />
+                <input
+                  value={bpm}
+                  placeholder="BPM"
+                  onChange={(e) => setBpm(e.target.value)}
+                />
+                <input
+                  value={musicalKey}
+                  placeholder="Key"
+                  onChange={(e) => setMusicalKey(e.target.value)}
+                />
+              </div>
             </div>
           </fieldset>
 
