@@ -142,7 +142,7 @@ export function ExplorePage() {
                 />
                 <path
                   d="M11 16.5h10M16 11.5v10"
-                  stroke="#f5fffb"
+                  stroke="#03121b"
                   strokeWidth="2.2"
                   strokeLinecap="round"
                 />
@@ -154,8 +154,8 @@ export function ExplorePage() {
                     x2="28"
                     y2="28"
                   >
-                    <stop stopColor="#0f6b5c" />
-                    <stop offset="1" stopColor="#0a4f44" />
+                    <stop stopColor="#00e5ff" />
+                    <stop offset="1" stopColor="#a855f7" />
                   </linearGradient>
                 </defs>
               </svg>

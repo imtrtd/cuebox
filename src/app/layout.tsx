@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { LibraryProvider } from "@/lib/library-context";
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   title: "Cuebox — библиотека промптов и чатов",
   description:
     "Рабочее пространство для хранения промптов, подсказок, общих задач и чатов с ИИ.",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#04050d",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
