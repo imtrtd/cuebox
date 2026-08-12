@@ -1,53 +1,40 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export type AppView = "home" | "library";
 
 export function SiteNav({
   active,
-  onNavigate,
   onCreate,
 }: {
   active: AppView | "explore";
-  onNavigate?: (view: AppView) => void;
   onCreate?: () => void;
 }) {
+  const router = useRouter();
+
+  function go(view: AppView) {
+    router.push(view === "home" ? "/" : "/?view=library");
+  }
+
   return (
     <nav className="site-nav" aria-label="Основная навигация">
       <div className="site-nav-pill">
-        {onNavigate ? (
-          <button
-            type="button"
-            className={active === "home" ? "nav-tab active" : "nav-tab"}
-            onClick={() => onNavigate("home")}
-          >
-            Home
-          </button>
-        ) : (
-          <Link
-            href="/?view=home"
-            className={active === "home" ? "nav-tab active" : "nav-tab"}
-          >
-            Home
-          </Link>
-        )}
-        {onNavigate ? (
-          <button
-            type="button"
-            className={active === "library" ? "nav-tab active" : "nav-tab"}
-            onClick={() => onNavigate("library")}
-          >
-            Library
-          </button>
-        ) : (
-          <Link
-            href="/?view=library"
-            className={active === "library" ? "nav-tab active" : "nav-tab"}
-          >
-            Library
-          </Link>
-        )}
+        <button
+          type="button"
+          className={active === "home" ? "nav-tab active" : "nav-tab"}
+          onClick={() => go("home")}
+        >
+          Home
+        </button>
+        <button
+          type="button"
+          className={active === "library" ? "nav-tab active" : "nav-tab"}
+          onClick={() => go("library")}
+        >
+          Library
+        </button>
         {onCreate ? (
           <button type="button" className="nav-tab" onClick={onCreate}>
             Create

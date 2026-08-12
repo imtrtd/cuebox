@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthStatus } from "@/components/AuthStatus";
 import { HomeDashboard } from "@/components/HomeDashboard";
 import { ItemDetail } from "@/components/ItemDetail";
@@ -11,7 +12,9 @@ import { Toolbar } from "@/components/Toolbar";
 import { useLibrary } from "@/lib/library-context";
 import type { ItemDraft, ItemKind, LibraryItem } from "@/lib/types";
 
-export function AppShell() {
+function AppShellInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     items,
     ready,
@@ -24,24 +27,23 @@ export function AppShell() {
     resetToSeed,
     importLocalToCloud,
   } = useLibrary();
-  const [view, setView] = useState<AppView>(() => {
-    if (typeof window === "undefined") return "home";
-    const params = new URLSearchParams(window.location.search);
-    const nextView = params.get("view");
-    if (nextView === "library" || nextView === "home") return nextView;
-    if (params.get("create") === "1") return "library";
-    return "home";
-  });
+
+  const view: AppView =
+    searchParams.get("view") === "library" ||
+    searchParams.get("create") === "1"
+      ? "library"
+      : "home";
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editorOpen, setEditorOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("create") === "1";
-  });
+  const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [defaultKind, setDefaultKind] = useState<ItemKind>("prompt");
   const [importPromptShown, setImportPromptShown] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const askedImportRef = useRef(false);
+
+  const createFromUrl = searchParams.get("create") === "1";
+  const editorVisible = editorOpen || createFromUrl;
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -61,10 +63,22 @@ export function AppShell() {
     setImportPromptShown(true);
   }, [mode, ready, localItemCount]);
 
+  function setView(next: AppView) {
+    router.push(next === "home" ? "/" : "/?view=library");
+  }
+
   function openCreate(kind: ItemKind = "prompt") {
     setEditing(null);
     setDefaultKind(kind);
     setEditorOpen(true);
+  }
+
+  function closeEditor() {
+    setEditorOpen(false);
+    setEditing(null);
+    if (createFromUrl) {
+      router.replace("/?view=library");
+    }
   }
 
   function openEdit() {
@@ -89,6 +103,7 @@ export function AppShell() {
         setSelectedId(created.id);
       }
       setView("library");
+      closeEditor();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Ошибка сохранения");
     }
@@ -184,11 +199,7 @@ export function AppShell() {
           </p>
         </div>
 
-        <SiteNav
-          active={view}
-          onNavigate={setView}
-          onCreate={() => openCreate("prompt")}
-        />
+        <SiteNav active={view} onCreate={() => openCreate("prompt")} />
 
         <div className="header-actions">
           <AuthStatus />
@@ -291,12 +302,26 @@ export function AppShell() {
       )}
 
       <ItemEditor
-        open={editorOpen}
-        initial={editing}
+        open={editorVisible}
+        initial={createFromUrl ? null : editing}
         defaultKind={defaultKind}
-        onClose={() => setEditorOpen(false)}
+        onClose={closeEditor}
         onSave={(draft, id) => void handleSave(draft, id)}
       />
     </div>
+  );
+}
+
+export function AppShell() {
+  return (
+    <Suspense
+      fallback={
+        <div className="app-shell">
+          <p className="list-empty">Загрузка Cuebox…</p>
+        </div>
+      }
+    >
+      <AppShellInner />
+    </Suspense>
   );
 }
