@@ -96,6 +96,16 @@ export function Toolbar({
       <div className="toolbar-row">
         <label className="search-field">
           <span className="sr-only">Поиск</span>
+          <span className="search-icon" aria-hidden>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
+              <circle cx="7" cy="7" r="4.5" strokeWidth="1.5" />
+              <path
+                d="M10.5 10.5 14 14"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -105,9 +115,6 @@ export function Toolbar({
         </label>
 
         <div className="toolbar-actions">
-          <Link href="/explore" className="btn btn-ghost">
-            Explore
-          </Link>
           <button
             type="button"
             className="btn btn-ghost"

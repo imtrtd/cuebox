@@ -23,6 +23,73 @@ export const SAMPLE_CATEGORIES = [
 
 export const SAMPLE_PROMPTS: SamplePrompt[] = [
   {
+    id: "sample-reverb-plate-vocal",
+    kind: "prompt",
+    title: "Local reverb on vocal",
+    category: "Код",
+    tags: ["audio", "reverb", "preset"],
+    models: ["Copilot", "Claude", "ChatGPT"],
+    body: `Build a local reverb preset for a vocal.
+
+Plugin: {{plugin}}
+Source: {{source}}
+Target vibe: {{vibe}}
+Decay: {{decay}}
+Pre-delay: {{predelay}}
+Tone: {{tone}}
+
+Return:
+1. exact parameter suggestions
+2. gain staging notes
+3. what to automate in the chorus`,
+    variableDefs: [
+      { key: "plugin", label: "Plugin", type: "text", defaultValue: "Valhalla Room" },
+      { key: "source", label: "Source", type: "text", defaultValue: "lead vocal" },
+      {
+        key: "vibe",
+        label: "Vibe",
+        type: "dropdown",
+        options: ["tight", "wide", "lush", "dark"],
+        defaultValue: "lush",
+      },
+      { key: "decay", label: "Decay", type: "text", defaultValue: "1.8s" },
+      { key: "predelay", label: "Pre-delay", type: "text", defaultValue: "35ms" },
+      { key: "tone", label: "Tone", type: "text", defaultValue: "soft top, trimmed lows" },
+    ],
+  },
+  {
+    id: "sample-drive-drum-bus",
+    kind: "prompt",
+    title: "Drive on drum bus",
+    category: "Код",
+    tags: ["audio", "drive", "distortion", "preset"],
+    models: ["Copilot", "Claude", "ChatGPT"],
+    body: `Design a drive preset for a drum bus.
+
+Plugin: {{plugin}}
+Material: {{source}}
+Style: {{style}}
+Drive amount: {{drive}}
+Blend: {{mix}}
+Goal: {{goal}}
+
+Explain which frequencies to protect and how to keep the transients alive.`,
+    variableDefs: [
+      { key: "plugin", label: "Plugin", type: "text", defaultValue: "Decapitator" },
+      { key: "source", label: "Source", type: "text", defaultValue: "drum bus" },
+      {
+        key: "style",
+        label: "Style",
+        type: "dropdown",
+        options: ["subtle glue", "punchy", "crunchy", "parallel smash"],
+        defaultValue: "punchy",
+      },
+      { key: "drive", label: "Drive", type: "text", defaultValue: "3.5" },
+      { key: "mix", label: "Mix", type: "text", defaultValue: "35%" },
+      { key: "goal", label: "Goal", type: "text", defaultValue: "more density without harsh cymbals" },
+    ],
+  },
+  {
     id: "sample-write-email",
     kind: "prompt",
     title: "Деловое письмо",
