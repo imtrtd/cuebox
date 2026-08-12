@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import {
   messagesToJson,
   modelsToJson,
+  presetToJson,
   serializeItem,
   tagsToJson,
   variableDefsToJson,
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
           copyCount: item.copyCount ?? 0,
           lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
           models: modelsToJson(item.models),
+          preset: presetToJson(item.preset) ?? null,
           variableDefs: variableDefsToJson(item.variableDefs),
           variants: variantsToJson(item.variants),
           activeVariantId: item.activeVariantId ?? null,
