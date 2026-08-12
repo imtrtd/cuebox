@@ -39,7 +39,7 @@ export function ItemList({
 
   return (
     <ul className="item-list" role="listbox" aria-label="Элементы библиотеки">
-      {filteredItems.map((item) => {
+      {filteredItems.map((item, index) => {
         const active = item.id === selectedId;
         return (
           <li key={item.id}>
@@ -48,6 +48,7 @@ export function ItemList({
               role="option"
               aria-selected={active}
               className={active ? "item-row active" : "item-row"}
+              style={{ animationDelay: `${Math.min(index, 12) * 0.035}s` }}
               onClick={() => onSelect(item)}
             >
               <div className="item-row-top">

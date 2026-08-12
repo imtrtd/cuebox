@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AuthStatus } from "@/components/AuthStatus";
+import { HomeDashboard } from "@/components/HomeDashboard";
 import { ItemDetail } from "@/components/ItemDetail";
 import { ItemEditor } from "@/components/ItemEditor";
 import { ItemList } from "@/components/ItemList";
+import { SiteNav, type AppView } from "@/components/SiteNav";
 import { Toolbar } from "@/components/Toolbar";
 import { useLibrary } from "@/lib/library-context";
 import type { ItemDraft, ItemKind, LibraryItem } from "@/lib/types";
@@ -22,8 +24,19 @@ export function AppShell() {
     resetToSeed,
     importLocalToCloud,
   } = useLibrary();
+  const [view, setView] = useState<AppView>(() => {
+    if (typeof window === "undefined") return "home";
+    const params = new URLSearchParams(window.location.search);
+    const nextView = params.get("view");
+    if (nextView === "library" || nextView === "home") return nextView;
+    if (params.get("create") === "1") return "library";
+    return "home";
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("create") === "1";
+  });
   const [editing, setEditing] = useState<LibraryItem | null>(null);
   const [defaultKind, setDefaultKind] = useState<ItemKind>("prompt");
   const [importPromptShown, setImportPromptShown] = useState(false);
@@ -61,6 +74,11 @@ export function AppShell() {
     setEditorOpen(true);
   }
 
+  function openItem(item: LibraryItem) {
+    setSelectedId(item.id);
+    setView("library");
+  }
+
   async function handleSave(draft: ItemDraft, id?: string) {
     try {
       if (id) {
@@ -70,6 +88,7 @@ export function AppShell() {
         const created = await addItem(draft);
         setSelectedId(created.id);
       }
+      setView("library");
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Ошибка сохранения");
     }
@@ -94,6 +113,7 @@ export function AppShell() {
         try {
           await importJson(String(reader.result ?? ""));
           setSelectedId(null);
+          setView("library");
         } catch (err) {
           window.alert(
             err instanceof Error
@@ -124,12 +144,52 @@ export function AppShell() {
     <div className="app-shell">
       <header className="site-header">
         <div className="brand-block">
-          <p className="brand">Cuebox</p>
+          <div className="brand-row">
+            <span className="brand-mark" aria-hidden>
+              <svg viewBox="0 0 32 32" fill="none">
+                <rect
+                  x="4"
+                  y="4"
+                  width="24"
+                  height="24"
+                  rx="8"
+                  fill="url(#cuebox-mark)"
+                />
+                <path
+                  d="M11 16.5h10M16 11.5v10"
+                  stroke="#f5fffb"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient
+                    id="cuebox-mark"
+                    x1="4"
+                    y1="4"
+                    x2="28"
+                    y2="28"
+                  >
+                    <stop stopColor="#0f6b5c" />
+                    <stop offset="1" stopColor="#0a4f44" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </span>
+            <p className="brand">Cuebox</p>
+          </div>
           <p className="tagline">
-            Личная библиотека промптов в духе PromptCodex — с папками,
-            переменными, вариантами и синхронизацией
+            {view === "home"
+              ? "Обзор библиотеки — статистика, сервисы и быстрый доступ"
+              : "Папки, переменные, варианты и синхронизация в одном месте"}
           </p>
         </div>
+
+        <SiteNav
+          active={view}
+          onNavigate={setView}
+          onCreate={() => openCreate("prompt")}
+        />
+
         <div className="header-actions">
           <AuthStatus />
           {ready && mode === "local" ? (
@@ -186,38 +246,49 @@ export function AppShell() {
         </div>
       ) : null}
 
-      <Toolbar
-        onCreate={openCreate}
-        onImportClick={() => fileRef.current?.click()}
-      />
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json,.json"
-        className="sr-only"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImportFile(file);
-          e.target.value = "";
-        }}
-      />
-
-      <div className="workspace">
-        <aside className="sidebar">
-          <ItemList
-            selectedId={selectedId}
-            onSelect={(item) => setSelectedId(item.id)}
+      {view === "home" ? (
+        <HomeDashboard
+          onOpenItem={openItem}
+          onOpenLibrary={() => setView("library")}
+          onCreate={() => openCreate("prompt")}
+        />
+      ) : (
+        <>
+          <Toolbar
+            onCreate={openCreate}
+            onImportClick={() => fileRef.current?.click()}
           />
-        </aside>
-        <main className="main-pane">
-          <ItemDetail
-            item={selected}
-            onEdit={openEdit}
-            onDelete={() => void handleDelete()}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImportFile(file);
+              e.target.value = "";
+            }}
           />
-        </main>
-      </div>
+
+          <div className="workspace">
+            <aside className="sidebar">
+              <div className="pane-label">Библиотека</div>
+              <ItemList
+                selectedId={selectedId}
+                onSelect={(item) => setSelectedId(item.id)}
+              />
+            </aside>
+            <main className="main-pane">
+              <ItemDetail
+                item={selected}
+                onEdit={openEdit}
+                onDelete={() => void handleDelete()}
+              />
+            </main>
+          </div>
+        </>
+      )}
 
       <ItemEditor
         open={editorOpen}

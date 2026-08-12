@@ -4,9 +4,51 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AuthStatus } from "@/components/AuthStatus";
+import { SiteNav } from "@/components/SiteNav";
 import { useLibrary } from "@/lib/library-context";
 import { SAMPLE_CATEGORIES, SAMPLE_PROMPTS } from "@/lib/samples";
 import { KIND_LABELS, type ItemDraft } from "@/lib/types";
+
+const CATEGORY_META: Record<
+  string,
+  { blurb: string; tone: string; icon: string }
+> = {
+  Письмо: {
+    blurb: "Письма, переписки и ясный тон.",
+    tone: "tone-blue",
+    icon: "✉",
+  },
+  Код: {
+    blurb: "Ревью, отладка и технические задачи.",
+    tone: "tone-green",
+    icon: "</>",
+  },
+  Маркетинг: {
+    blurb: "Кампании, офферы и позиционирование.",
+    tone: "tone-amber",
+    icon: "◆",
+  },
+  Обучение: {
+    blurb: "Объяснения, планы и учебные материалы.",
+    tone: "tone-ink",
+    icon: "◎",
+  },
+  Аналитика: {
+    blurb: "Сводка данных и выводы без шума.",
+    tone: "tone-teal",
+    icon: "▤",
+  },
+  Продукт: {
+    blurb: "Спеки, UX и продуктовые решения.",
+    tone: "tone-forest",
+    icon: "▣",
+  },
+  Творчество: {
+    blurb: "Идеи, сценарии и свободный стиль.",
+    tone: "tone-clay",
+    icon: "✧",
+  },
+};
 
 export function ExplorePage() {
   const { status } = useSession();
@@ -14,6 +56,14 @@ export function ExplorePage() {
   const [category, setCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [imported, setImported] = useState<Record<string, boolean>>({});
+
+  const counts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const sample of SAMPLE_PROMPTS) {
+      map.set(sample.category, (map.get(sample.category) ?? 0) + 1);
+    }
+    return map;
+  }, []);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -64,21 +114,65 @@ export function ExplorePage() {
     }
   }
 
+  const featured =
+    category === "all"
+      ? CATEGORY_META[SAMPLE_CATEGORIES[0]]
+      : CATEGORY_META[category];
+  const featuredTitle =
+    category === "all" ? "Каталог идей" : category;
+  const featuredBlurb =
+    category === "all"
+      ? "Готовые промпты по категориям — импорт в один клик."
+      : featured?.blurb ?? "";
+
   return (
-    <div className="app-shell">
+    <div className="app-shell explore-shell">
       <header className="site-header">
         <div className="brand-block">
-          <p className="brand">
-            <Link href="/" className="brand-link">
-              Cuebox
-            </Link>
-          </p>
-          <p className="tagline">
-            Explore — каталог готовых промптов в духе PromptCodex
-          </p>
+          <div className="brand-row">
+            <span className="brand-mark" aria-hidden>
+              <svg viewBox="0 0 32 32" fill="none">
+                <rect
+                  x="4"
+                  y="4"
+                  width="24"
+                  height="24"
+                  rx="8"
+                  fill="url(#cuebox-mark-explore)"
+                />
+                <path
+                  d="M11 16.5h10M16 11.5v10"
+                  stroke="#f5fffb"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient
+                    id="cuebox-mark-explore"
+                    x1="4"
+                    y1="4"
+                    x2="28"
+                    y2="28"
+                  >
+                    <stop stopColor="#0f6b5c" />
+                    <stop offset="1" stopColor="#0a4f44" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </span>
+            <p className="brand">
+              <Link href="/" className="brand-link">
+                Cuebox
+              </Link>
+            </p>
+          </div>
+          <p className="tagline">Explore — каталог готовых промптов</p>
         </div>
+
+        <SiteNav active="explore" />
+
         <div className="header-actions">
-          <Link href="/" className="btn btn-ghost">
+          <Link href="/?view=library" className="btn btn-ghost">
             Библиотека
           </Link>
           <AuthStatus />
@@ -93,10 +187,25 @@ export function ExplorePage() {
         </p>
       ) : null}
 
-      <section className="toolbar">
+      <section className="explore-hero" aria-label="Категория">
+        <div className="explore-hero-orb" aria-hidden />
+        <div className="explore-hero-copy">
+          <p className="explore-kicker">Explore</p>
+          <h1>{featuredTitle}</h1>
+          <p>{featuredBlurb}</p>
+        </div>
+      </section>
+
+      <section className="toolbar explore-toolbar">
         <div className="toolbar-row">
           <label className="search-field">
             <span className="sr-only">Поиск</span>
+            <span className="search-icon" aria-hidden>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                <circle cx="7" cy="7" r="4.5" strokeWidth="1.5" />
+                <path d="M10.5 10.5 14 14" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -126,9 +235,39 @@ export function ExplorePage() {
         </div>
       </section>
 
+      {category === "all" ? (
+        <div className="category-grid">
+          {SAMPLE_CATEGORIES.map((cat, index) => {
+            const meta = CATEGORY_META[cat];
+            return (
+              <button
+                key={cat}
+                type="button"
+                className={`category-card ${meta.tone}`}
+                style={{ animationDelay: `${0.05 * index}s` }}
+                onClick={() => setCategory(cat)}
+              >
+                <span className="category-top">
+                  <span className="category-icon" aria-hidden>
+                    {meta.icon}
+                  </span>
+                  <span className="category-count">{counts.get(cat) ?? 0}</span>
+                </span>
+                <strong>{cat}</strong>
+                <p>{meta.blurb}</p>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
       <div className="explore-grid">
-        {list.map((sample) => (
-          <article key={sample.id} className="explore-card">
+        {list.map((sample, index) => (
+          <article
+            key={sample.id}
+            className="explore-card"
+            style={{ animationDelay: `${0.03 * index}s` }}
+          >
             <div className="item-row-top">
               <span className={`kind-badge kind-${sample.kind}`}>
                 {KIND_LABELS[sample.kind]}
@@ -139,7 +278,7 @@ export function ExplorePage() {
             <p className="item-row-preview">{sample.body}</p>
             <div className="tag-row">
               {sample.models.map((model) => (
-                <span key={model} className="tag">
+                <span key={model} className="tag model-tag">
                   {model}
                 </span>
               ))}
