@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { AiServiceIcon } from "@/components/AiServiceIcon";
 import { AI_FOLDER_SEEDS } from "@/lib/ai-folders";
-import { collectionSubtreeIds } from "@/lib/collections";
 import { useLibrary } from "@/lib/library-context";
 import type { Collection } from "@/lib/types";
 
@@ -48,14 +47,14 @@ export function FolderSidebar() {
   const counts = useMemo(() => {
     const active = items.filter((item) => !item.archived);
     const byFolder = new Map<string, number>();
-    for (const collection of collections) {
-      const subtree = collectionSubtreeIds(collection.id, collections);
-      byFolder.set(
-        collection.id,
-        active.filter(
-          (item) => item.collectionId && subtree.has(item.collectionId),
-        ).length,
-      );
+    const byId = new Map(collections.map((collection) => [collection.id, collection]));
+    for (const item of active) {
+      if (!item.collectionId) continue;
+      let current = byId.get(item.collectionId);
+      while (current) {
+        byFolder.set(current.id, (byFolder.get(current.id) ?? 0) + 1);
+        current = current.parentId ? byId.get(current.parentId) : undefined;
+      }
     }
     return {
       all: active.length,

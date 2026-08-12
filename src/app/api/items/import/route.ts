@@ -38,20 +38,34 @@ export async function POST(request: Request) {
       await prisma.libraryItem.deleteMany({ where: { userId } });
     }
 
+    const incomingCollectionIds = Array.from(
+      new Set(
+        items
+          .map((item) => item.collectionId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const validCollectionIds = new Set(
+      incomingCollectionIds.length
+        ? (
+            await prisma.collection.findMany({
+              where: { userId, id: { in: incomingCollectionIds } },
+              select: { id: true },
+            })
+          ).map((collection) => collection.id)
+        : [],
+    );
+
     const created = [];
     for (const item of items) {
       if (!item.kind || !KIND_SET.has(item.kind)) continue;
       const title = item.title?.trim();
       if (!title) continue;
 
-      let collectionId: string | null = null;
-      if (item.collectionId) {
-        const collection = await prisma.collection.findFirst({
-          where: { id: item.collectionId, userId },
-          select: { id: true },
-        });
-        if (collection) collectionId = collection.id;
-      }
+      const collectionId =
+        item.collectionId && validCollectionIds.has(item.collectionId)
+          ? item.collectionId
+          : null;
 
       const row = await prisma.libraryItem.create({
         data: {
