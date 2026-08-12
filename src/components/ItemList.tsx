@@ -60,6 +60,12 @@ export function ItemList({
               <p className="item-row-preview">{item.body}</p>
               <div className="item-row-bottom">
                 <div className="tag-row">
+                  {item.preset?.plugin ? (
+                    <span className="tag">{item.preset.plugin}</span>
+                  ) : null}
+                  {item.preset?.pluginType ? (
+                    <span className="tag">{item.preset.pluginType}</span>
+                  ) : null}
                   {item.archived ? (
                     <span className="tag">архив</span>
                   ) : null}
