@@ -8,8 +8,9 @@ set -euo pipefail
 PORT=3000
 LOG_FILE=/tmp/cuebox-next-dev.log
 PID_FILE=/tmp/cuebox-next-dev.pid
+CURL_TIMEOUT_SECONDS=5
 
-if curl -sf "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+if curl --connect-timeout "${CURL_TIMEOUT_SECONDS}" --max-time "${CURL_TIMEOUT_SECONDS}" -sf "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
   echo "Next.js already listening on ${PORT}"
   exit 0
 fi
@@ -22,7 +23,7 @@ nohup npm run dev -- --hostname 0.0.0.0 --port "${PORT}" >"${LOG_FILE}" 2>&1 &
 echo $! >"${PID_FILE}"
 
 for _ in $(seq 1 60); do
-  if curl -sf "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+  if curl --connect-timeout "${CURL_TIMEOUT_SECONDS}" --max-time "${CURL_TIMEOUT_SECONDS}" -sf "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
     echo "Next.js ready on ${PORT}"
     exit 0
   fi
