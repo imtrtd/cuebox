@@ -40,8 +40,8 @@ export function ItemDetail({
       <div className="detail-empty">
         <p className="detail-empty-brand">Cuebox</p>
         <p>
-          Выберите элемент слева или откройте{" "}
-          <a href="/explore">Explore</a> — каталог готовых промптов.
+          Выберите промпт слева — или откройте{" "}
+          <a href="/explore">Explore</a> и импортируйте готовый.
         </p>
       </div>
     );

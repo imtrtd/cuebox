@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthStatus } from "@/components/AuthStatus";
+import { HomeDashboard } from "@/components/HomeDashboard";
 import { ItemDetail } from "@/components/ItemDetail";
 import { ItemEditor } from "@/components/ItemEditor";
 import { ItemList } from "@/components/ItemList";
+import { SiteNav, type AppView } from "@/components/SiteNav";
 import { Toolbar } from "@/components/Toolbar";
 import { useLibrary } from "@/lib/library-context";
 import type { ItemDraft, ItemKind, LibraryItem } from "@/lib/types";
 
-export function AppShell() {
+function AppShellInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     items,
     ready,
@@ -22,6 +27,13 @@ export function AppShell() {
     resetToSeed,
     importLocalToCloud,
   } = useLibrary();
+
+  const view: AppView =
+    searchParams.get("view") === "library" ||
+    searchParams.get("create") === "1"
+      ? "library"
+      : "home";
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
@@ -29,6 +41,9 @@ export function AppShell() {
   const [importPromptShown, setImportPromptShown] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const askedImportRef = useRef(false);
+
+  const createFromUrl = searchParams.get("create") === "1";
+  const editorVisible = editorOpen || createFromUrl;
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -48,10 +63,22 @@ export function AppShell() {
     setImportPromptShown(true);
   }, [mode, ready, localItemCount]);
 
+  function setView(next: AppView) {
+    router.push(next === "home" ? "/" : "/?view=library");
+  }
+
   function openCreate(kind: ItemKind = "prompt") {
     setEditing(null);
     setDefaultKind(kind);
     setEditorOpen(true);
+  }
+
+  function closeEditor() {
+    setEditorOpen(false);
+    setEditing(null);
+    if (createFromUrl) {
+      router.replace("/?view=library");
+    }
   }
 
   function openEdit() {
@@ -59,6 +86,11 @@ export function AppShell() {
     setEditing(selected);
     setDefaultKind(selected.kind);
     setEditorOpen(true);
+  }
+
+  function openItem(item: LibraryItem) {
+    setSelectedId(item.id);
+    setView("library");
   }
 
   async function handleSave(draft: ItemDraft, id?: string) {
@@ -70,6 +102,8 @@ export function AppShell() {
         const created = await addItem(draft);
         setSelectedId(created.id);
       }
+      setView("library");
+      closeEditor();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Ошибка сохранения");
     }
@@ -94,6 +128,7 @@ export function AppShell() {
         try {
           await importJson(String(reader.result ?? ""));
           setSelectedId(null);
+          setView("library");
         } catch (err) {
           window.alert(
             err instanceof Error
@@ -124,12 +159,47 @@ export function AppShell() {
     <div className="app-shell">
       <header className="site-header">
         <div className="brand-block">
-          <p className="brand">Cuebox</p>
+          <div className="brand-row">
+            <span className="brand-mark" aria-hidden>
+              <svg viewBox="0 0 32 32" fill="none">
+                <rect
+                  x="4"
+                  y="4"
+                  width="24"
+                  height="24"
+                  rx="8"
+                  fill="url(#cuebox-mark)"
+                />
+                <path
+                  d="M11 16.5h10M16 11.5v10"
+                  stroke="#f5fffb"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient
+                    id="cuebox-mark"
+                    x1="4"
+                    y1="4"
+                    x2="28"
+                    y2="28"
+                  >
+                    <stop stopColor="#0f6b5c" />
+                    <stop offset="1" stopColor="#0a4f44" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </span>
+            <p className="brand">Cuebox</p>
+          </div>
           <p className="tagline">
-            Личная библиотека промптов в духе PromptCodex — с папками,
-            переменными, вариантами и синхронизацией
+            Сохраняйте промпты, подставляйте переменные и копируйте в любимый
+            ИИ
           </p>
         </div>
+
+        <SiteNav active={view} onCreate={() => openCreate("prompt")} />
+
         <div className="header-actions">
           <AuthStatus />
           {ready && mode === "local" ? (
@@ -186,46 +256,71 @@ export function AppShell() {
         </div>
       ) : null}
 
-      <Toolbar
-        onCreate={openCreate}
-        onImportClick={() => fileRef.current?.click()}
-      />
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json,.json"
-        className="sr-only"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImportFile(file);
-          e.target.value = "";
-        }}
-      />
-
-      <div className="workspace">
-        <aside className="sidebar">
-          <ItemList
-            selectedId={selectedId}
-            onSelect={(item) => setSelectedId(item.id)}
+      {view === "home" ? (
+        <HomeDashboard
+          onOpenItem={openItem}
+          onOpenLibrary={() => setView("library")}
+          onCreate={() => openCreate("prompt")}
+        />
+      ) : (
+        <>
+          <Toolbar
+            onCreate={openCreate}
+            onImportClick={() => fileRef.current?.click()}
           />
-        </aside>
-        <main className="main-pane">
-          <ItemDetail
-            item={selected}
-            onEdit={openEdit}
-            onDelete={() => void handleDelete()}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImportFile(file);
+              e.target.value = "";
+            }}
           />
-        </main>
-      </div>
+
+          <div className="workspace">
+            <aside className="sidebar">
+              <div className="pane-label">Библиотека</div>
+              <ItemList
+                selectedId={selectedId}
+                onSelect={(item) => setSelectedId(item.id)}
+              />
+            </aside>
+            <main className="main-pane">
+              <ItemDetail
+                item={selected}
+                onEdit={openEdit}
+                onDelete={() => void handleDelete()}
+              />
+            </main>
+          </div>
+        </>
+      )}
 
       <ItemEditor
-        open={editorOpen}
-        initial={editing}
+        open={editorVisible}
+        initial={createFromUrl ? null : editing}
         defaultKind={defaultKind}
-        onClose={() => setEditorOpen(false)}
+        onClose={closeEditor}
         onSave={(draft, id) => void handleSave(draft, id)}
       />
     </div>
+  );
+}
+
+export function AppShell() {
+  return (
+    <Suspense
+      fallback={
+        <div className="app-shell">
+          <p className="list-empty">Загрузка Cuebox…</p>
+        </div>
+      }
+    >
+      <AppShellInner />
+    </Suspense>
   );
 }
