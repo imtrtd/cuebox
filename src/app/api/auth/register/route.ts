@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureAiFolders } from "@/lib/ensure-ai-folders";
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
       data: { email, passwordHash },
       select: { id: true, email: true },
     });
+
+    await ensureAiFolders(user.id);
 
     return NextResponse.json({ user }, { status: 201 });
   } catch {
