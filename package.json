@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "build:catalog": "node scripts/build-promptcodex-catalog.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
