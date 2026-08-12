@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import {
   messagesToJson,
   modelsToJson,
+  presetToJson,
   serializeItem,
   tagsToJson,
   variableDefsToJson,
@@ -11,6 +12,7 @@ import {
 import { requireUserId } from "@/lib/session";
 import type {
   AiModel,
+  AudioPluginPresetMeta,
   ChatMessage,
   ItemKind,
   PromptVariant,
@@ -47,6 +49,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       archived?: boolean;
       collectionId?: string | null;
       models?: AiModel[];
+      preset?: AudioPluginPresetMeta;
       variableDefs?: VariableDef[];
       variants?: PromptVariant[];
       activeVariantId?: string | null;
@@ -85,6 +88,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         collectionId:
           body.collectionId !== undefined ? body.collectionId : undefined,
         models: body.models !== undefined ? modelsToJson(body.models) : undefined,
+        preset: body.preset !== undefined ? presetToJson(body.preset) : undefined,
         variableDefs:
           body.variableDefs !== undefined
             ? variableDefsToJson(body.variableDefs)

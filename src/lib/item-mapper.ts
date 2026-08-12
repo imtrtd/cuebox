@@ -1,6 +1,7 @@
 import type { LibraryItem as DbItem, Collection as DbCollection } from "@prisma/client";
 import type {
   AiModel,
+  AudioPluginPresetMeta,
   ChatMessage,
   Collection,
   LibraryItem,
@@ -31,6 +32,7 @@ export function serializeItem(row: DbItem): LibraryItem {
     copyCount: row.copyCount,
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
     models: parseJsonArray<AiModel>(row.models),
+    preset: row.preset ? (JSON.parse(row.preset) as AudioPluginPresetMeta) : undefined,
     variableDefs: parseJsonArray<VariableDef>(row.variableDefs),
     variants: parseJsonArray<PromptVariant>(row.variants),
     activeVariantId: row.activeVariantId,
@@ -77,4 +79,11 @@ export function variableDefsToJson(defs: VariableDef[] | undefined): string {
 
 export function variantsToJson(variants: PromptVariant[] | undefined): string {
   return JSON.stringify(variants ?? []);
+}
+
+export function presetToJson(preset: AudioPluginPresetMeta | undefined): string | null {
+  if (!preset) return null;
+  const hasData = preset.plugin || preset.source || preset.bpm || preset.key || (preset.pluginType && preset.pluginType !== "other");
+  if (!hasData) return null;
+  return JSON.stringify(preset);
 }
