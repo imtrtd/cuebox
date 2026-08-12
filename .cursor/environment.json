@@ -1,10 +1,11 @@
 {
   "snapshot": "POPULATED_FROM_IMAGE",
   "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
   "terminals": [
     {
-      "name": "dev",
-      "command": "npm run dev -- --hostname 0.0.0.0 --port 3000"
+      "name": "dev-log",
+      "command": "touch /tmp/cuebox-next-dev.log && tail -F /tmp/cuebox-next-dev.log"
     }
   ]
 }
