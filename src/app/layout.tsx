@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/AuthProvider";
 import { LibraryProvider } from "@/lib/library-context";
 import "./globals.css";
+import "./brand.css";
 
 const syne = Syne({
   variable: "--font-syne",
@@ -24,14 +25,23 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cuebox — библиотека промптов и чатов",
+  title: {
+    default: "Cuebox — AI working library",
+    template: "%s — Cuebox",
+  },
   description:
-    "Рабочее пространство для хранения промптов, подсказок, общих задач и чатов с ИИ.",
+    "Рабочее пространство для промптов, чатов, переменных и повторяемых AI-сценариев.",
+  applicationName: "Cuebox",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
   colorScheme: "dark",
-  themeColor: "#04050d",
+  themeColor: "#09060f",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

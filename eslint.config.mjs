@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "public/cuebox-prompt-card-v1.js",
     "next-env.d.ts",
   ]),
 ]);

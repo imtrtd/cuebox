@@ -13,6 +13,7 @@ Cuebox is a prompt library for individuals and small teams who want a clean plac
 - **Local-first flow** with browser storage and optional cloud sync
 - **Preset metadata** for local audio FX workflows such as reverb and drive
 - **JSON import/export** for backup and migration
+- **ChatGPT plugin endpoint** with public prompt search, fetch, variable filling, and an inline React card
 
 ## Live
 
@@ -147,6 +148,7 @@ Open:
 
 - `http://localhost:3000`
 - `http://localhost:3000/explore`
+- `http://localhost:3000/mcp` (MCP Streamable HTTP endpoint)
 
 ## Available scripts
 
@@ -154,6 +156,8 @@ Open:
 | --- | --- |
 | `npm run dev` | Start the local development server |
 | `npm run build` | Generate Prisma client and build the app |
+| `npm run build:mcp-widget` | Bundle the inline React widget used by ChatGPT |
+| `npm run test:mcp` | Smoke-test tools against a running local `/mcp` endpoint |
 | `npm run start` | Start the production server |
 | `npm run lint` | Run ESLint |
 | `npm run db:generate` | Generate Prisma client |
@@ -166,6 +170,23 @@ Vercel runs `npm run vercel-build`. Migrations are applied only when
 `VERCEL_ENV` is `production`, so preview deployments never touch the
 production database. Preview builds still need `DATABASE_URL`; only the
 production environment needs `DATABASE_URL_UNPOOLED`.
+
+### Connect Cuebox to ChatGPT
+
+Cuebox exposes a stateless Streamable HTTP MCP server at `/mcp`. It provides:
+
+- `search` — search the public Explore catalog using the standard read-only search shape
+- `fetch` — retrieve one complete prompt using the standard read-only fetch shape
+- `render_prompt` — fill known variables and render a single inline prompt card
+
+For local ChatGPT testing, set `CUEBOX_PUBLIC_URL` to the public HTTPS URL of
+your tunnel, run `npm run dev`, and connect `<public-url>/mcp` in ChatGPT
+Developer Mode. Refresh the ChatGPT plugin after changing tool descriptors,
+resource metadata, or the widget bundle.
+
+The first version intentionally exposes only the public Explore catalog. The
+authenticated personal library remains private until the MCP endpoint has a
+dedicated OAuth flow.
 
 ## Typical workflow
 
