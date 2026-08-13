@@ -45,17 +45,25 @@ export function FolderSidebar() {
   } = useLibrary();
 
   const counts = useMemo(() => {
+    // Build a parent lookup once: O(collections)
+    const parentOf = new Map<string, string | null>(
+      collections.map((c) => [c.id, c.parentId ?? null]),
+    );
+
     const active = items.filter((item) => !item.archived);
     const byFolder = new Map<string, number>();
-    const byId = new Map(collections.map((collection) => [collection.id, collection]));
+
+    // For each active item walk its ancestor chain: O(items * depth)
     for (const item of active) {
-      if (!item.collectionId) continue;
-      let current = byId.get(item.collectionId);
-      while (current) {
-        byFolder.set(current.id, (byFolder.get(current.id) ?? 0) + 1);
-        current = current.parentId ? byId.get(current.parentId) : undefined;
+      let cur: string | null | undefined = item.collectionId;
+      let guard = 0;
+      while (cur && parentOf.has(cur) && guard < 8) {
+        byFolder.set(cur, (byFolder.get(cur) ?? 0) + 1);
+        cur = parentOf.get(cur);
+        guard += 1;
       }
     }
+
     return {
       all: active.length,
       favorites: active.filter((item) => item.favorite).length,

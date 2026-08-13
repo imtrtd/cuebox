@@ -216,6 +216,10 @@ export function ItemDetail({
             onChange={(e) => {
               void editItem(item.id, {
                 collectionId: e.target.value || null,
+              }).catch((err: unknown) => {
+                window.alert(
+                  err instanceof Error ? err.message : "Не удалось переместить",
+                );
               });
             }}
           >

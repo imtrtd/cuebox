@@ -292,6 +292,7 @@ export function ExplorePage() {
         {list.map((sample, index) => (
           <article
             key={sample.id}
+            id={`prompt-${sample.id}`}
             className="explore-card"
             style={{ animationDelay: `${0.03 * index}s` }}
           >
