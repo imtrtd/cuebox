@@ -42,6 +42,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# generated ChatGPT widget bundle
+/public/cuebox-prompt-card-v1.js
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
