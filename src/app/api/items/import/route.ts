@@ -18,6 +18,8 @@ const MAX_IMPORT_ITEMS = 500;
 const MAX_IMPORT_BYTES = 8 * 1024 * 1024;
 const MAX_TITLE_LENGTH = 300;
 const MAX_BODY_LENGTH = 100_000;
+const IMPORT_TRANSACTION_MAX_WAIT_MS = 5_000;
+const IMPORT_TRANSACTION_TIMEOUT_MS = 20_000;
 
 export async function POST(request: Request) {
   const userId = await requireUserId();
@@ -86,44 +88,50 @@ export async function POST(request: Request) {
         : [],
     );
 
-    const created = await prisma.$transaction(async (tx) => {
-      if (payload.replace) {
-        await tx.libraryItem.deleteMany({ where: { userId } });
-      }
+    const created = await prisma.$transaction(
+      async (tx) => {
+        if (payload.replace) {
+          await tx.libraryItem.deleteMany({ where: { userId } });
+        }
 
-      const imported = [];
-      for (const item of validItems) {
-        const title = item.title.trim();
-        const collectionId =
-          item.collectionId && validCollectionIds.has(item.collectionId)
-            ? item.collectionId
-            : null;
-        const row = await tx.libraryItem.create({
-          data: {
-            userId,
-            kind: item.kind,
-            title,
-            body: (item.body ?? title).trim(),
-            tags: tagsToJson(item.tags),
-            messages: messagesToJson(item.messages),
-            favorite: Boolean(item.favorite),
-            archived: Boolean(item.archived),
-            copyCount: item.copyCount ?? 0,
-            lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
-            models: modelsToJson(item.models),
-            variableDefs: variableDefsToJson(item.variableDefs),
-            variants: variantsToJson(item.variants),
-            activeVariantId: item.activeVariantId ?? null,
-            preset: presetToJson(item.preset),
-            collectionId,
-            createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
-            updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
-          },
-        });
-        imported.push(serializeItem(row));
-      }
-      return imported;
-    });
+        const imported = [];
+        for (const item of validItems) {
+          const title = item.title.trim();
+          const collectionId =
+            item.collectionId && validCollectionIds.has(item.collectionId)
+              ? item.collectionId
+              : null;
+          const row = await tx.libraryItem.create({
+            data: {
+              userId,
+              kind: item.kind,
+              title,
+              body: (item.body ?? title).trim(),
+              tags: tagsToJson(item.tags),
+              messages: messagesToJson(item.messages),
+              favorite: Boolean(item.favorite),
+              archived: Boolean(item.archived),
+              copyCount: item.copyCount ?? 0,
+              lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
+              models: modelsToJson(item.models),
+              variableDefs: variableDefsToJson(item.variableDefs),
+              variants: variantsToJson(item.variants),
+              activeVariantId: item.activeVariantId ?? null,
+              preset: presetToJson(item.preset),
+              collectionId,
+              createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
+              updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
+            },
+          });
+          imported.push(serializeItem(row));
+        }
+        return imported;
+      },
+      {
+        maxWait: IMPORT_TRANSACTION_MAX_WAIT_MS,
+        timeout: IMPORT_TRANSACTION_TIMEOUT_MS,
+      },
+    );
 
     return NextResponse.json({ items: created }, { status: 201 });
   } catch {
