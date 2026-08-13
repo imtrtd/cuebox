@@ -91,38 +91,38 @@ export async function POST(request: Request) {
         await tx.libraryItem.deleteMany({ where: { userId } });
       }
 
-      return Promise.all(
-        validItems.map(async (item) => {
-          const title = item.title.trim();
-          const collectionId =
-            item.collectionId && validCollectionIds.has(item.collectionId)
-              ? item.collectionId
-              : null;
-          const row = await tx.libraryItem.create({
-            data: {
-              userId,
-              kind: item.kind,
-              title,
-              body: (item.body ?? title).trim(),
-              tags: tagsToJson(item.tags),
-              messages: messagesToJson(item.messages),
-              favorite: Boolean(item.favorite),
-              archived: Boolean(item.archived),
-              copyCount: item.copyCount ?? 0,
-              lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
-              models: modelsToJson(item.models),
-              variableDefs: variableDefsToJson(item.variableDefs),
-              variants: variantsToJson(item.variants),
-              activeVariantId: item.activeVariantId ?? null,
-              preset: presetToJson(item.preset),
-              collectionId,
-              createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
-              updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
-            },
-          });
-          return serializeItem(row);
-        }),
-      );
+      const imported = [];
+      for (const item of validItems) {
+        const title = item.title.trim();
+        const collectionId =
+          item.collectionId && validCollectionIds.has(item.collectionId)
+            ? item.collectionId
+            : null;
+        const row = await tx.libraryItem.create({
+          data: {
+            userId,
+            kind: item.kind,
+            title,
+            body: (item.body ?? title).trim(),
+            tags: tagsToJson(item.tags),
+            messages: messagesToJson(item.messages),
+            favorite: Boolean(item.favorite),
+            archived: Boolean(item.archived),
+            copyCount: item.copyCount ?? 0,
+            lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
+            models: modelsToJson(item.models),
+            variableDefs: variableDefsToJson(item.variableDefs),
+            variants: variantsToJson(item.variants),
+            activeVariantId: item.activeVariantId ?? null,
+            preset: presetToJson(item.preset),
+            collectionId,
+            createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
+            updatedAt: item.updatedAt ? new Date(item.updatedAt) : undefined,
+          },
+        });
+        imported.push(serializeItem(row));
+      }
+      return imported;
     });
 
     return NextResponse.json({ items: created }, { status: 201 });
