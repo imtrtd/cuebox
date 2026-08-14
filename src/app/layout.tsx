@@ -3,7 +3,6 @@ import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/AuthProvider";
 import { LibraryProvider } from "@/lib/library-context";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import "./brand.css";
 
