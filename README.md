@@ -166,10 +166,12 @@ Open:
 
 ## Deployment
 
-Vercel runs `npm run vercel-build`. Migrations are applied only when
-`VERCEL_ENV` is `production`, so preview deployments never touch the
-production database. Preview builds still need `DATABASE_URL`; only the
-production environment needs `DATABASE_URL_UNPOOLED`.
+Vercel runs `npm run vercel-build`. If `DATABASE_URL_UNPOOLED` is missing
+or empty, the build copies `DATABASE_URL` so Prisma can generate and the
+app still compiles (this is what broke `cuebox-y58q` and `cuebox-e812`
+with P1012). Migrations run only when `VERCEL_ENV` is `production` **and**
+a real `DATABASE_URL_UNPOOLED` is set, so preview and misconfigured
+duplicate projects never touch the production database over a pooler URL.
 
 ### Connect Cuebox to ChatGPT
 
