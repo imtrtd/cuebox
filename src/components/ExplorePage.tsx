@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AuthStatus } from "@/components/AuthStatus";
+import { CueboxLogo } from "@/components/CueboxLogo";
 import { SiteNav } from "@/components/SiteNav";
 import {
   EXPLORE_CATEGORIES,
@@ -157,35 +158,8 @@ export function ExplorePage() {
       <header className="site-header">
         <div className="brand-block">
           <div className="brand-row">
-            <span className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 32 32" fill="none">
-                <rect
-                  x="4"
-                  y="4"
-                  width="24"
-                  height="24"
-                  rx="8"
-                  fill="url(#cuebox-mark-explore)"
-                />
-                <path
-                  d="M11 16.5h10M16 11.5v10"
-                  stroke="#03121b"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient
-                    id="cuebox-mark-explore"
-                    x1="4"
-                    y1="4"
-                    x2="28"
-                    y2="28"
-                  >
-                    <stop stopColor="#00e5ff" />
-                    <stop offset="1" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <span className="brand-mark">
+              <CueboxLogo />
             </span>
             <p className="brand">
               <Link href="/" className="brand-link">
