@@ -5,8 +5,8 @@
   "scripts": {
     "build:mcp-widget": "esbuild src/mcp-widget/index.tsx --bundle --format=iife --platform=browser --target=es2020 --minify --outfile=public/cuebox-prompt-card-v1.js",
     "dev": "npm run build:mcp-widget && next dev",
-    "build": "npm run build:mcp-widget && prisma generate && next build",
-    "vercel-build": "npm run build:mcp-widget && prisma generate && node scripts/vercel-migrate.mjs && next build",
+    "build": "npm run build:mcp-widget && node scripts/prisma-generate.mjs && next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "eslint",
     "test:mcp": "node scripts/smoke-mcp.mjs",
@@ -14,12 +14,11 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "build:catalog": "node scripts/build-promptcodex-catalog.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "node scripts/prisma-generate.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@vercel/analytics": "latest",
     "@prisma/client": "^5.22.0",
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.3",
