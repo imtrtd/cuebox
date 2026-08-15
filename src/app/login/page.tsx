@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CueboxLogo } from "@/components/CueboxLogo";
 import { LoginForm } from "@/components/LoginForm";
 
 export default function LoginPage() {
@@ -6,6 +7,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <Link href="/" className="auth-brand">
+          <CueboxLogo />
           Cuebox
         </Link>
         <h1>Вход</h1>
