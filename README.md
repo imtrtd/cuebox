@@ -108,6 +108,12 @@ The app stores three primary entities in cloud mode:
 ### Installation
 
 ```bash
+./install.sh
+```
+
+Or step by step:
+
+```bash
 cp .env.example .env
 npm install
 ```

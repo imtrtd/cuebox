@@ -1,7 +1,7 @@
 {
   "snapshot": "POPULATED_FROM_IMAGE",
   "install": "./install.sh",
-  "start": "npm run dev -- --hostname 0.0.0.0 --port 3000",
+  "start": "./scripts/db-ready.sh",
   "terminals": [
     {
       "name": "dev",
