@@ -1,15 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
+import {
+  Geist_Mono,
+  JetBrains_Mono,
+  Manrope,
+  Space_Grotesk,
+} from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/AuthProvider";
 import { LibraryProvider } from "@/lib/library-context";
 import "./globals.css";
 import "./brand.css";
 
-const syne = Syne({
-  variable: "--font-syne",
+// Shared display + mono voice with imtryingtodesign.com.
+// Latin glyphs render in Space Grotesk / Geist Mono; Cyrillic falls back to
+// Manrope / JetBrains Mono automatically (both cover the Cyrillic range).
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 const manrope = Manrope({
@@ -41,14 +54,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "dark",
-  themeColor: "#09060f",
+  themeColor: "#0a0a0f",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ru"
-      className={`${syne.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${geistMono.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <AuthProvider>
