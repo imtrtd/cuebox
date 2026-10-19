@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BrandMark, BrandWordmark } from "@/components/BrandMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AuthStatus } from "@/components/AuthStatus";
@@ -204,6 +205,7 @@ export function ExplorePage() {
         <SiteNav active="explore" />
 
         <div className="header-actions">
+          <ThemeToggle />
           <Link href="/?view=library" className="btn btn-ghost">
             Библиотека
           </Link>

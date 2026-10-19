@@ -20,6 +20,10 @@
   --paper-3: #5f5e69;
   --pulse: #d8ff00;
   --pulse-ink: #0b0b10;
+  --fg-rgb: 255 255 255;
+  --inverse-fg: #0b0b10;
+  --accent-mark: var(--pulse);
+  color-scheme: dark;
 
   /* — Semantic tokens (names consumed by globals.css) -------------------- */
   --void: var(--graphite-0);
@@ -36,22 +40,22 @@
   --amber: #ffc24b;
   --danger: #ff5c6c;
 
-  --glass-soft: rgba(255, 255, 255, 0.02);
-  --glass: rgba(255, 255, 255, 0.035);
-  --glass-strong: rgba(255, 255, 255, 0.06);
+  --glass-soft: rgb(var(--fg-rgb) / 0.02);
+  --glass: rgb(var(--fg-rgb) / 0.035);
+  --glass-strong: rgb(var(--fg-rgb) / 0.06);
   --panel: var(--graphite-2);
   --panel-strong: var(--graphite-3);
   --panel-solid: var(--graphite-2);
 
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.14);
+  --line: rgb(var(--fg-rgb) / 0.07);
+  --line-strong: rgb(var(--fg-rgb) / 0.14);
   --accent-soft: rgba(216, 255, 0, 0.1);
   --accent-line: rgba(216, 255, 0, 0.28);
   --accent-edge: rgba(216, 255, 0, 0.55);
   --ink-veil: rgba(8, 8, 11, 0.7);
   --ink-veil-soft: rgba(8, 8, 11, 0.45);
 
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 20px 50px rgba(0, 0, 0, 0.45);
+  --shadow: 0 1px 0 rgb(var(--fg-rgb) / 0.03) inset, 0 20px 50px rgba(0, 0, 0, 0.45);
   --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.3);
   --shadow-lift: 0 24px 64px rgba(0, 0, 0, 0.55);
   --glow: 0 0 0 1px var(--line-strong);
@@ -79,8 +83,8 @@
   --tracking-tight: -0.025em;
 
   /* Mark */
-  --mark-tile: var(--graphite-1);
-  --mark-ink: var(--paper-0);
+  --mark-tile: #0b0b10;
+  --mark-ink: #f4f2ec;
   --mark-edge: rgba(255, 255, 255, 0.1);
 }
 
@@ -101,7 +105,7 @@ body::before {
   opacity: 1;
   transform: none;
   animation: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-image: radial-gradient(rgb(var(--fg-rgb) / 0.05) 1px, transparent 1px);
   background-size: 24px 24px;
   mask-image: linear-gradient(to bottom, #000, transparent 420px);
 }
@@ -210,7 +214,7 @@ h1, h2, h3, .section-head h2 {
 }
 .nav-tab:hover { color: var(--ink); background: var(--glass-strong); }
 .nav-tab.active {
-  color: var(--pulse-ink);
+  color: var(--inverse-fg);
   background: var(--paper-0);
   box-shadow: none;
 }
@@ -244,7 +248,7 @@ h1, h2, h3, .section-head h2 {
   color: var(--ink-soft);
   font-size: var(--text-sm);
 }
-.sync-banner a { color: var(--pulse); }
+.sync-banner a { color: var(--accent-text); }
 
 .pane-label, .ai-folders-label, .folder-section-head, .explore-kicker, .stat-label {
   font-family: var(--font-mono);
@@ -269,12 +273,12 @@ h1, h2, h3, .section-head h2 {
   box-shadow: none;
   transition: background 0.15s, border-color 0.15s, transform 0.15s var(--ease-out);
 }
-.btn:hover { background: var(--graphite-4); border-color: rgba(255, 255, 255, 0.2); transform: none; }
+.btn:hover { background: var(--graphite-4); border-color: rgb(var(--fg-rgb) / 0.2); transform: none; }
 .btn:active { transform: translateY(1px); }
 
 .btn-primary {
   background: var(--pulse);
-  border-color: var(--pulse);
+  border-color: var(--accent-text);
   color: var(--pulse-ink);
   font-weight: 600;
   box-shadow: 0 0 0 0 rgba(216, 255, 0, 0);
@@ -338,13 +342,13 @@ h1, h2, h3, .section-head h2 {
   background: var(--glass);
 }
 .kind-tab.active, .pill.active, .tag-chip.active, .tag-button.active, .ai-folder.active {
-  color: var(--pulse-ink);
+  color: var(--inverse-fg);
   background: var(--paper-0);
   border-color: var(--paper-0);
   box-shadow: none;
 }
 .ai-folder-link { color: var(--paper-3); border-left-color: var(--line); }
-.ai-folder-link:hover { color: var(--pulse); }
+.ai-folder-link:hover { color: var(--accent-text); }
 
 .tag, .model-tag, .collection-chip {
   border-radius: var(--radius-xs);
@@ -367,7 +371,7 @@ h1, h2, h3, .section-head h2 {
   background: transparent;
   border: 1px solid currentColor;
 }
-.kind-prompt { color: var(--pulse); background: rgba(216, 255, 0, 0.06); }
+.kind-prompt { color: var(--accent-text); background: rgba(216, 255, 0, 0.06); }
 .kind-tip { color: var(--amber); background: rgba(255, 194, 75, 0.06); }
 .kind-task { color: var(--violet); background: rgba(156, 140, 255, 0.06); }
 .kind-chat { color: var(--magenta); background: rgba(255, 92, 200, 0.06); }
@@ -392,7 +396,7 @@ kbd, .kbd-hint kbd {
 .item-row.active {
   background: var(--graphite-3);
   border-color: var(--line-strong);
-  box-shadow: inset 2px 0 0 var(--pulse);
+  box-shadow: inset 2px 0 0 var(--accent-mark);
 }
 .item-row-title { font-weight: 600; letter-spacing: -0.01em; }
 .item-row-preview { color: var(--ink-soft); }
@@ -402,10 +406,10 @@ kbd, .kbd-hint kbd {
 .folder-nav .active, .folder-tree .active {
   background: var(--graphite-4);
   color: var(--ink);
-  box-shadow: inset 2px 0 0 var(--pulse);
+  box-shadow: inset 2px 0 0 var(--accent-mark);
 }
 .folder-count { font-family: var(--font-mono); color: var(--paper-3); }
-.folder-add { color: var(--pulse); }
+.folder-add { color: var(--accent-text); }
 
 /* — Detail & empty states ------------------------------------------------- */
 .detail-empty { color: var(--ink-soft); }
@@ -417,7 +421,7 @@ kbd, .kbd-hint kbd {
   -webkit-text-fill-color: initial;
 }
 .detail-empty-brand svg { width: 56px; height: 56px; }
-.detail-empty a, .text-link { color: var(--pulse); }
+.detail-empty a, .text-link { color: var(--accent-text); }
 .list-empty, .empty-inline, .empty-strip, .folder-empty {
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius-sm);
@@ -447,7 +451,7 @@ kbd, .kbd-hint kbd {
   background: none;
   -webkit-text-fill-color: currentColor;
 }
-.stat-card.tone-blue .stat-value { color: var(--pulse); }
+.stat-card.tone-blue .stat-value { color: var(--accent-text); }
 .favorite-card:hover, .explore-card:hover, .category-card:hover {
   border-color: var(--line-strong);
   background: var(--graphite-3);
@@ -476,7 +480,7 @@ kbd, .kbd-hint kbd {
   -webkit-text-fill-color: currentColor;
 }
 .explore-hero p { color: var(--ink-soft); }
-.explore-kicker { color: var(--pulse); }
+.explore-kicker { color: var(--accent-text); }
 .category-card.tone-blue, .category-card.tone-green, .category-card.tone-amber,
 .category-card.tone-ink, .category-card.tone-teal { background: var(--panel); }
 
@@ -537,7 +541,7 @@ kbd, .kbd-hint kbd {
 .auth-brand::before, .auth-brand::after { content: none; display: none; }
 .auth-brand svg { width: 40px; height: 40px; }
 .auth-lead { color: var(--ink-soft); }
-.auth-switch a { color: var(--pulse); }
+.auth-switch a { color: var(--accent-text); }
 .form-error { color: var(--danger); }
 
 .skeleton-pulse { background: var(--graphite-3); }
@@ -552,7 +556,7 @@ kbd, .kbd-hint kbd {
 .category-icon {
   background: var(--graphite-1);
   border: 1px solid var(--line);
-  color: var(--pulse);
+  color: var(--accent-text);
   box-shadow: none;
 }
 .category-count {
@@ -572,3 +576,92 @@ kbd, .kbd-hint kbd {
 }
 .home-section { background: transparent; border: 0; padding: 0; }
 .detail-head h1, .detail-head h2 { font-weight: 600; }
+
+/* ==========================================================================
+   Light theme. Applies when the OS prefers light (unless the user forced
+   dark) or when the user picked light. The theme script in layout.tsx sets
+   data-theme before first paint, so there is no flash.
+   ========================================================================== */
+:root[data-theme="light"] {
+  --graphite-0: #f4f3ee;
+  --graphite-1: #ffffff;
+  --graphite-2: #fbfaf6;
+  --graphite-3: #efeee8;
+  --graphite-4: #e6e5de;
+  --graphite-5: #d6d5cd;
+  --paper-0: #0b0b10;
+  --paper-1: #34343c;
+  --paper-2: #5c5b66;
+  --paper-3: #85848e;
+  --fg-rgb: 11 11 16;
+  --inverse-fg: #ffffff;
+  /* Lime stays a fill (with dark text); text-level accents use olive for AA contrast. */
+  --accent-text: #556400;
+  --accent-mark: #8aa300;
+  --accent-deep: #6f8200;
+  --accent-soft: rgba(138, 163, 0, 0.12);
+  --accent-line: rgba(111, 130, 0, 0.35);
+  --accent-edge: rgba(111, 130, 0, 0.65);
+  --amber: #a86a00;
+  --violet: #5b48d6;
+  --magenta: #c0268f;
+  --danger: #d12c41;
+  --ink-veil: rgba(244, 243, 238, 0.72);
+  --ink-veil-soft: rgba(244, 243, 238, 0.5);
+  --shadow: 0 1px 2px rgba(11, 11, 16, 0.04), 0 12px 32px rgba(11, 11, 16, 0.06);
+  --shadow-soft: 0 6px 18px rgba(11, 11, 16, 0.06);
+  --shadow-lift: 0 24px 60px rgba(11, 11, 16, 0.16);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+  --graphite-0: #f4f3ee;
+  --graphite-1: #ffffff;
+  --graphite-2: #fbfaf6;
+  --graphite-3: #efeee8;
+  --graphite-4: #e6e5de;
+  --graphite-5: #d6d5cd;
+  --paper-0: #0b0b10;
+  --paper-1: #34343c;
+  --paper-2: #5c5b66;
+  --paper-3: #85848e;
+  --fg-rgb: 11 11 16;
+  --inverse-fg: #ffffff;
+  /* Lime stays a fill (with dark text); text-level accents use olive for AA contrast. */
+  --accent-text: #556400;
+  --accent-mark: #8aa300;
+  --accent-deep: #6f8200;
+  --accent-soft: rgba(138, 163, 0, 0.12);
+  --accent-line: rgba(111, 130, 0, 0.35);
+  --accent-edge: rgba(111, 130, 0, 0.65);
+  --amber: #a86a00;
+  --violet: #5b48d6;
+  --magenta: #c0268f;
+  --danger: #d12c41;
+  --ink-veil: rgba(244, 243, 238, 0.72);
+  --ink-veil-soft: rgba(244, 243, 238, 0.5);
+  --shadow: 0 1px 2px rgba(11, 11, 16, 0.04), 0 12px 32px rgba(11, 11, 16, 0.06);
+  --shadow-soft: 0 6px 18px rgba(11, 11, 16, 0.06);
+  --shadow-lift: 0 24px 60px rgba(11, 11, 16, 0.16);
+  color-scheme: light;
+  }
+}
+:root[data-theme="light"] body {
+  background: radial-gradient(1100px 520px at 50% -260px, rgba(216, 255, 0, 0.22), transparent 70%), var(--void);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) body {
+    background: radial-gradient(1100px 520px at 50% -260px, rgba(216, 255, 0, 0.22), transparent 70%), var(--void);
+  }
+}
+
+/* Theme toggle */
+.theme-toggle {
+  width: var(--control-h);
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+.theme-toggle svg { width: 16px; height: 16px; }
+.detail-empty { background: radial-gradient(420px 220px at 50% 40%, var(--accent-soft), transparent 70%); }
+.ai-folder.active .ai-folder-name, .ai-folder.active .ai-folder-link { color: var(--inverse-fg); }

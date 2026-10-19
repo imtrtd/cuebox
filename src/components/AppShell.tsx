@@ -1,6 +1,7 @@
 "use client";
 
 import { BrandMark, BrandWordmark } from "@/components/BrandMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import {
   Suspense,
@@ -292,6 +293,7 @@ function AppShellInner() {
 
         <div className="header-actions">
           <AuthStatus />
+          <ThemeToggle />
           {ready && mode === "local" ? (
             <button
               type="button"

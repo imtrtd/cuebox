@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Onest, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/AuthProvider";
+import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 import { LibraryProvider } from "@/lib/library-context";
 import "./globals.css";
 import "./brand.css";
@@ -46,16 +47,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: "#0b0b10",
+  colorScheme: "dark light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f3ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#08080b" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ru"
+      suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${onest.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <AuthProvider>
           <LibraryProvider>{children}</LibraryProvider>
