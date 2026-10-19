@@ -25,9 +25,20 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Required by OpenNext so the workerd build of Prisma is bundled.
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  // pg loads pg-cloudflare lazily on workerd; make sure the tracer ships it.
+  outputFileTracingIncludes: {
+    "/**": ["./node_modules/pg-cloudflare/**/*"],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
 };
 
 export default nextConfig;
+
+// Lets `next dev` read Cloudflare bindings/env the same way the Worker does.
+if (process.env.NODE_ENV === "development" && process.env.CUEBOX_CF_DEV === "1") {
+  import("@opennextjs/cloudflare").then((m) => m.initOpenNextCloudflareForDev());
+}
