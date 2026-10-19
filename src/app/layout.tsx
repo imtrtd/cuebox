@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Onest, Space_Grotesk } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/AuthProvider";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 import { LibraryProvider } from "@/lib/library-context";
@@ -68,7 +67,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <LibraryProvider>{children}</LibraryProvider>
         </AuthProvider>
-        <Analytics />
       </body>
     </html>
   );

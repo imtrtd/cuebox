@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cuebox",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": { "enabled": true },
+  // Non-secret config. Secrets (AUTH_SECRET, DATABASE_URL, DATABASE_URL_UNPOOLED)
+  // are set with `wrangler secret put` and never committed.
+  "vars": {
+    "AUTH_TRUST_HOST": "true",
+    "AUTH_URL": "https://cuebox.unitl.workers.dev",
+    "CUEBOX_PUBLIC_URL": "https://cuebox.unitl.workers.dev"
+  }
+}
