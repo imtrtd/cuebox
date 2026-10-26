@@ -1,5 +1,8 @@
 "use client";
 
+import { BrandMark, BrandWordmark } from "@/components/BrandMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 import {
   Suspense,
   useEffect,
@@ -274,36 +277,11 @@ function AppShellInner() {
         <div className="brand-block">
           <div className="brand-row">
             <span className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 32 32" fill="none">
-                <rect
-                  x="4"
-                  y="4"
-                  width="24"
-                  height="24"
-                  rx="8"
-                  fill="url(#cuebox-mark)"
-                />
-                <path
-                  d="M11 16.5h10M16 11.5v10"
-                  stroke="#03121b"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient
-                    id="cuebox-mark"
-                    x1="4"
-                    y1="4"
-                    x2="28"
-                    y2="28"
-                  >
-                    <stop stopColor="#00e5ff" />
-                    <stop offset="1" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <BrandMark />
             </span>
-            <p className="brand">Cuebox</p>
+            <p className="brand">
+              <BrandWordmark />
+            </p>
           </div>
           <p className="tagline">
             Сохраняйте промпты, подставляйте переменные и копируйте в любимый
@@ -315,6 +293,7 @@ function AppShellInner() {
 
         <div className="header-actions">
           <AuthStatus />
+          <ThemeToggle />
           {ready && mode === "local" ? (
             <button
               type="button"

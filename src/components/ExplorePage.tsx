@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { BrandMark, BrandWordmark } from "@/components/BrandMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AuthStatus } from "@/components/AuthStatus";
@@ -10,6 +12,7 @@ import {
   EXPLORE_COUNTS,
   EXPLORE_PROMPTS,
 } from "@/lib/explore-catalog";
+import { PROMPTCODEX_LIBRARY_META } from "@/lib/promptcodex-catalog";
 import { useLibrary } from "@/lib/library-context";
 import { KIND_LABELS, type ItemDraft } from "@/lib/types";
 
@@ -76,6 +79,36 @@ const CATEGORY_META: Record<
     blurb: "Рабочие процессы, отчёты и коммуникация.",
     tone: "tone-ink",
     icon: "◇",
+  },
+  Финансы: {
+    blurb: "Бюджеты, инвестиции и финансовый анализ.",
+    tone: "tone-forest",
+    icon: "₽",
+  },
+  Кулинария: {
+    blurb: "Рецепты, меню и планирование готовки.",
+    tone: "tone-clay",
+    icon: "◍",
+  },
+  "Мозговой штурм": {
+    blurb: "Идеи, варианты и неожиданные ходы.",
+    tone: "tone-amber",
+    icon: "✦",
+  },
+  "3D": {
+    blurb: "Генерация 3D-моделей и сцен.",
+    tone: "tone-teal",
+    icon: "◇",
+  },
+  "Личностный рост": {
+    blurb: "Цели, привычки и рефлексия.",
+    tone: "tone-green",
+    icon: "↗",
+  },
+  Общее: {
+    blurb: "Универсальные промпты на каждый день.",
+    tone: "tone-ink",
+    icon: "○",
   },
   Другое: {
     blurb: "Всё, что не попало в другие категории.",
@@ -158,38 +191,11 @@ export function ExplorePage() {
         <div className="brand-block">
           <div className="brand-row">
             <span className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 32 32" fill="none">
-                <rect
-                  x="4"
-                  y="4"
-                  width="24"
-                  height="24"
-                  rx="8"
-                  fill="url(#cuebox-mark-explore)"
-                />
-                <path
-                  d="M11 16.5h10M16 11.5v10"
-                  stroke="#03121b"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient
-                    id="cuebox-mark-explore"
-                    x1="4"
-                    y1="4"
-                    x2="28"
-                    y2="28"
-                  >
-                    <stop stopColor="#00e5ff" />
-                    <stop offset="1" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <BrandMark />
             </span>
             <p className="brand">
               <Link href="/" className="brand-link">
-                Cuebox
+                <BrandWordmark />
               </Link>
             </p>
           </div>
@@ -199,6 +205,7 @@ export function ExplorePage() {
         <SiteNav active="explore" />
 
         <div className="header-actions">
+          <ThemeToggle />
           <Link href="/?view=library" className="btn btn-ghost">
             Библиотека
           </Link>
@@ -221,6 +228,37 @@ export function ExplorePage() {
           <h1>{featuredTitle}</h1>
           <p>{featuredBlurb}</p>
         </div>
+        <aside className="library-source" aria-label="Источник библиотеки">
+          {PROMPTCODEX_LIBRARY_META.projects.map((project) => (
+            <div key={project.id} className="library-project">
+              {project.iconImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={project.iconImageUrl} alt="" width={40} height={40} />
+              ) : null}
+              <div>
+                <p className="library-project-name">{project.name}</p>
+                <p className="library-project-meta">
+                  {project.description} · {project.websiteURL}
+                </p>
+              </div>
+            </div>
+          ))}
+          <div className="library-services">
+            {PROMPTCODEX_LIBRARY_META.services.map((service) => (
+              <span key={service.id} className="library-service">
+                {service.iconUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={service.iconUrl} alt="" width={18} height={18} />
+                ) : null}
+                {service.name}
+              </span>
+            ))}
+            <span className="library-service muted">
+              {PROMPTCODEX_LIBRARY_META.promptCount} промптов ·{" "}
+              {PROMPTCODEX_LIBRARY_META.tagCount} тегов
+            </span>
+          </div>
+        </aside>
       </section>
 
       <section className="toolbar explore-toolbar">

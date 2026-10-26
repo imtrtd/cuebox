@@ -1,4 +1,6 @@
 generator client {
+  // Uses driver adapters (src/lib/db.ts) so the client runs on Node and on
+  // Cloudflare Workers. Keep the default output: OpenNext patches it for workerd.
   provider = "prisma-client-js"
 }
 

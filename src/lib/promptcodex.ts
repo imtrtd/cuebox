@@ -60,6 +60,12 @@ export const PROMPTCODEX_CATEGORIES: Record<string, string> = {
   "builtin.writing": "Письмо",
   "builtin.education": "Обучение",
   "builtin.creative": "Творчество",
+  "builtin.finance": "Финансы",
+  "builtin.cooking": "Кулинария",
+  "builtin.brainstorming": "Мозговой штурм",
+  "builtin.3dGeneration": "3D",
+  "builtin.personalGrowth": "Личностный рост",
+  "builtin.general": "Общее",
 };
 
 export const PROMPTCODEX_FALLBACK_CATEGORY = "Другое";
@@ -177,6 +183,8 @@ export function promptCodexCategory(prompt: PromptCodexPrompt): string {
   if (prompt.categoryId && PROMPTCODEX_CATEGORIES[prompt.categoryId]) {
     return PROMPTCODEX_CATEGORIES[prompt.categoryId];
   }
+  // Unknown or custom PromptCodex category: keep the name from the export.
+  if (prompt.categoryName?.trim()) return prompt.categoryName.trim();
   return PROMPTCODEX_FALLBACK_CATEGORY;
 }
 
@@ -203,7 +211,7 @@ export function promptCodexToItem(prompt: PromptCodexPrompt): LibraryItem {
     title: prompt.title?.trim() || "Без названия",
     body: primary.body,
     tags,
-    favorite: Boolean(prompt.isFavorite),
+    favorite: Boolean(prompt.isFavorite || prompt.isPinned),
     archived: Boolean(prompt.isArchived),
     copyCount: prompt.copyCount ?? 0,
     lastUsedAt: null,

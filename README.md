@@ -17,7 +17,7 @@ Cuebox is a prompt library for individuals and small teams who want a clean plac
 
 ## Live
 
-Cuebox is deployed at **[https://cuebox-liart.vercel.app](https://cuebox-liart.vercel.app)**.
+Cuebox is deployed at **[https://cuebox.unitl.workers.dev](https://cuebox.unitl.workers.dev)** (Cloudflare Workers).
 
 Local mode works in the browser without an account. Sign in on the live site to sync a cloud library across devices.
 
@@ -171,6 +171,33 @@ Open:
 | `npm run db:deploy` | Apply existing migrations |
 
 ## Deployment
+
+### Cloudflare Workers (primary)
+
+Cuebox runs on Cloudflare Workers via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare).
+Prisma uses driver adapters (`src/lib/db.ts`): Neon URLs go through
+`@prisma/adapter-neon` (WebSocket over 443), other Postgres through `@prisma/adapter-pg`.
+
+```bash
+npm run cf:preview   # build + run the Worker locally (reads .dev.vars)
+npm run cf:deploy    # build + deploy (needs CLOUDFLARE_API_TOKEN / wrangler login)
+```
+
+Secrets live in the Worker, never in git:
+
+```bash
+npx wrangler secret put AUTH_SECRET
+npx wrangler secret put DATABASE_URL            # Neon pooled URL
+npx wrangler secret put DATABASE_URL_UNPOOLED   # Neon direct URL (migrations)
+```
+
+Non-secret vars (`AUTH_URL`, `CUEBOX_PUBLIC_URL`, `AUTH_TRUST_HOST`) are in
+`wrangler.jsonc`. Run migrations from a machine that can reach Postgres on
+5432: `npm run db:deploy`. CI deploy (`.github/workflows/deploy-cloudflare.yml`)
+runs on `main` once the repo has `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+secrets and the `CLOUDFLARE_DEPLOY_ENABLED=true` variable.
+
+### Vercel (legacy)
 
 Vercel runs `npm run vercel-build`. If `DATABASE_URL_UNPOOLED` is missing
 or empty, the build copies `DATABASE_URL` so Prisma can generate and the

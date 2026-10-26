@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandMark } from "@/components/BrandMark";
 import { useMemo, useState } from "react";
 import { VariableFillModal } from "@/components/VariableFillModal";
 import { folderPath } from "@/lib/collections";
@@ -50,7 +51,9 @@ export function ItemDetail({
   if (!item) {
     return (
       <div className="detail-empty">
-        <p className="detail-empty-brand">Cuebox</p>
+        <div className="detail-empty-brand">
+          <BrandMark size={56} />
+        </div>
         <p>
           Выберите промпт слева — или откройте{" "}
           <a href="/explore">Explore</a> и импортируйте готовый.
