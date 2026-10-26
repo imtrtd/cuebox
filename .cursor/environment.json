@@ -1,7 +1,7 @@
 {
   "snapshot": "POPULATED_FROM_IMAGE",
-  "install": "npm install\nnpx prisma generate",
-  "start": "npm run dev -- --hostname 0.0.0.0 --port 3000",
+  "install": "./install.sh",
+  "start": "./scripts/db-ready.sh",
   "terminals": [
     {
       "name": "dev",
